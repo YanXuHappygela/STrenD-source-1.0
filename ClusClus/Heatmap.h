@@ -78,7 +78,7 @@
 #include <vtkScalarBarActor.h>
 
 #include <ftkCommon/ftkUtils.h>
-#include "ObjectSelection.h"
+#include "ftkGUI/ObjectSelection.h"
 #include "ftkGUI/ColorMap.h"
 #include "Biclustering.h"
 

@@ -14,6 +14,7 @@ limitations under the License.
 =========================================================================*/
 
 #include "SelectiveClustering.h"
+#include <algorithm>
 
 SelectiveClustering::SelectiveClustering()
 {

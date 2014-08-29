@@ -29,9 +29,7 @@ limitations under the License.
 #include <vtkVariantArray.h>
 #include <vtkDoubleArray.h>
 
-#include "ftkImage/ftkImage.h"
 #include <tinyxml/tinyxml.h>
-#include <ftkFeatures/ftkObjectAssociation.h>
 
 #include <string>
 #include <ctime>
@@ -49,18 +47,12 @@ bool AppendTextFile(std::string filename, std::string text);			//Add new line to
 bool SaveTable(std::string filename, vtkSmartPointer<vtkTable> table);
 bool SaveTableAppend(std::string filename, vtkSmartPointer<vtkTable> table, int id);
 bool SaveTableSeries(std::string filename,std::vector< vtkSmartPointer<vtkTable> >  table4DImage,std::string path);
-bool SaveImageSeries(std::string seriesfilename, ftk::Image::Pointer image,std::string path);
-bool SaveLabelSeries(std::string seriesfilename, ftk::Image::Pointer image,std::string path);
 
 vtkSmartPointer<vtkTable> LoadTable(std::string filename);
 vtkSmartPointer<vtkTable> LoadRotatedTable(std::string filename);
 vtkSmartPointer<vtkTable> LoadXYZTable(std::string filename);
 vtkSmartPointer<vtkTable> AppendLoadTable(std::string filename, vtkSmartPointer<vtkTable> table , double tx, double ty, double tz);
-bool SaveXMLImage(std::string filename, ftk::Image::Pointer image);
-ftk::Image::Pointer LoadXMLImage(std::string filename);
-ftk::Image::Pointer LoadImageSeries(std::string filename);
 std::vector<std::string> GetSeriesPaths(std::string filename);
-ftk::Image::Pointer LoadImageSeriesLabels(std::string filename);
 vtkSmartPointer<vtkTable> AppendTables(vtkSmartPointer<vtkTable> table_initial,vtkSmartPointer<vtkTable> table_new );
 std::vector< vtkSmartPointer<vtkTable> > LoadTableSeries(std::string filename);
 std::string NumToString(double d);

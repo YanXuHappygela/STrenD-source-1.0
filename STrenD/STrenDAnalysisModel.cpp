@@ -10,7 +10,7 @@
 #include <boost/math/special_functions/fpclassify.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/johnson_all_pairs_shortest.hpp>
-#include "ftkUtils.h"
+#include "ftkCommon/ftkUtils.h"
 #include "transportSimplex.h"
 #include <iomanip>
 #include "ClusClus/Biclustering.h"

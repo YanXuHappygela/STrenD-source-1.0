@@ -46,7 +46,7 @@ limitations under the License.
 #include "ftkGUI/ObjectSelection.h"
 #include "ftkGUI/StatisticsToolbar.h"
 #include "ftkGUI/SelectiveClustering.h"
-#include "ftkUtils.h"
+#include "ftkCommon/ftkUtils.h"
 //#include "ftkGUI/GraphWindow.h"
 #include "ftkGUI/GraphWindowForNewSelection.h"
 #include "ClusClus/clusclus.h"

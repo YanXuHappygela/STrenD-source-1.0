@@ -80,7 +80,7 @@
 
 #include <ClusClus/clusclus.h>
 #include <ftkCommon/ftkUtils.h>
-#include "ObjectSelection.h"
+#include "ftkGUI/ObjectSelection.h"
 
 class Dendrogram : public QMainWindow
 {

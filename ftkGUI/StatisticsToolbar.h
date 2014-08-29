@@ -27,7 +27,7 @@ limitations under the License.
 #include <vector>
 #include <string>
 
-#include <ObjectSelection.h>
+#include "ftkGUI/ObjectSelection.h"
 
 
 

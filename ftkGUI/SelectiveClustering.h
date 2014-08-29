@@ -70,7 +70,7 @@ limitations under the License.
 #include <vtkQtTableView.h>
 #include <vtkQtTableModelAdapter.h>
 
-#include "ftkUtils.h"
+#include "ftkCommon/ftkUtils.h"
 #include "vtkSmartPointer.h"
 #include "SelectionUtilities.h"
 class ClusterManager;

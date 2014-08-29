@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.10)
 
 project( STrenDAnalysis )
+option( BUILD_OPENMP "Build with OpenMP support (Note that only VS2008 Pro and VS2008 Team System supports OpenMP)" ON)
 
 if("${STrenDAnalysis_BINARY_DIR}" MATCHES "^${STrenDAnalysis_SOURCE_DIR}$")
   message(FATAL_ERROR "STrenDAnalysis must be built with separate source and binary directories.")
@@ -46,6 +47,16 @@ endif(QT4_FOUND)
 find_package(Boost)
 include_directories ( ${Boost_INCLUDE_DIRS})
 
+if(BUILD_OPENMP)
+  if(MSVC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+  elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+  endif (MSVC)
+endif(BUILD_OPENMP)
+
 add_subdirectory(STrenDEditor)
 add_subdirectory(ClusClus)
 add_subdirectory(STrenD)
@@ -53,9 +64,6 @@ add_subdirectory(STrenD)
 set( common_libraries
   ftkCommon
   ftkGUI
-  ftkGraphs
-  ftkImage
-  ftkFeatures
   tinyxml
   )
   

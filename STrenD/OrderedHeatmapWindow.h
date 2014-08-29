@@ -98,7 +98,7 @@
 
 #include <ftkCommon/ftkUtils.h>
 #include "ClusClus/clusclus.h"
-#include "ObjectSelection.h"
+#include "ftkGUI/ObjectSelection.h"
 #include "ftkGUI/ColorMap.h"
 
 /*class vtkHoverCallback : public vtkCommand
