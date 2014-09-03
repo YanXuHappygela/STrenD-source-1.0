@@ -354,9 +354,19 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 	for( int i = 0; i < table->GetNumberOfRows() + 1; i++)
 	{
 		int vertexID = graph->AddVertex();
+		//int index = floor( i / 4.0);
+		QString str;
+		//if (index <= 10)
+		//{
+		//	str = QString::number(0.05 + index * 0.1);
+		//}
+		//else
+		//{
+		//	str = QString("real");
+		//}
+
 		if (this->indMapFromClusIndToVertex.size() <= 0)
 		{
-			QString str;
 			if( this->indMapFromIndToVertex.size() > 0)
 			{
 				vertexIDarrays->InsertNextValue( this->indMapFromIndToVertex[i]);
@@ -413,12 +423,12 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 			
 			if( this->indMapFromClusIndToVertex[i].size() == 1)
 			{
-				QString str = QString::number(this->indMapFromIndToVertex[i]);
+				str = QString::number(this->indMapFromIndToVertex[i]);
 				vertexLabel->InsertNextValue(str.toUtf8().constData());
 			}
 			else
 			{
-				QString str = QString::number(this->indMapFromClusIndToVertex[i].size());
+				str = QString::number(this->indMapFromClusIndToVertex[i].size());
 				vertexLabel->InsertNextValue(str.toUtf8().constData());
 			}
 		}
@@ -523,94 +533,94 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 		exit(-2);
 	}
 
-	//vtkSmartPointer<vtkIntArray> vertexColors = vtkSmartPointer<vtkIntArray>::New();
-	//vertexColors->SetNumberOfComponents(1);
-	//vertexColors->SetName("Color");
-	//this->lookupTable->SetNumberOfTableValues( table->GetNumberOfRows() + 1);
+	vtkSmartPointer<vtkIntArray> vertexColors = vtkSmartPointer<vtkIntArray>::New();
+	vertexColors->SetNumberOfComponents(1);
+	vertexColors->SetName("Color");
+	this->lookupTable->SetNumberOfTableValues( table->GetNumberOfRows() + 1);
 
-	//for( vtkIdType i = 0; i < table->GetNumberOfRows() + 1; i++)               
-	//{             
-	//	vertexColors->InsertNextValue( i);
-	//	int k = int( featureColorVector[i] * COLOR_MAP2_SIZE + 0.5);
-	//	if( k >= COLOR_MAP2_SIZE)
-	//	{
-	//		k = COLOR_MAP2_SIZE - 1;
-	//	}
-	//	this->lookupTable->SetTableValue(i, COLORMAP2[k].r, COLORMAP2[k].g, COLORMAP2[k].b); 
-	//}
-	//lookupTable->Build();
+	for( vtkIdType i = 0; i < table->GetNumberOfRows() + 1; i++)               
+	{             
+		vertexColors->InsertNextValue( i);
+		int k = int( featureColorVector[i] * COLOR_MAP2_SIZE + 0.5);
+		if( k >= COLOR_MAP2_SIZE)
+		{
+			k = COLOR_MAP2_SIZE - 1;
+		}
+		this->lookupTable->SetTableValue(i, COLORMAP2[k].r, COLORMAP2[k].g, COLORMAP2[k].b); 
+	}
+	lookupTable->Build();
 
-	//vtkSmartPointer<vtkIntArray> edgeColors = vtkSmartPointer<vtkIntArray>::New();
+	vtkSmartPointer<vtkIntArray> edgeColors = vtkSmartPointer<vtkIntArray>::New();
 
-	//edgeColors->SetNumberOfComponents(1);
-	//edgeColors->SetName("EdgeColor");
-	//this->edgeLookupTable->SetNumberOfTableValues( table->GetNumberOfRows());
-	//for( vtkIdType i = 0; i < table->GetNumberOfRows(); i++)               
-	//{ 
-	//	edgeColors->InsertNextValue(i); // color the edges by default color
-	//	this->edgeLookupTable->SetTableValue(i, edgeDefaultColor[0], edgeDefaultColor[1], edgeDefaultColor[2]);
-	//}
+	edgeColors->SetNumberOfComponents(1);
+	edgeColors->SetName("EdgeColor");
+	this->edgeLookupTable->SetNumberOfTableValues( table->GetNumberOfRows());
+	for( vtkIdType i = 0; i < table->GetNumberOfRows(); i++)               
+	{ 
+		edgeColors->InsertNextValue(i); // color the edges by default color
+		this->edgeLookupTable->SetTableValue(i, edgeDefaultColor[0], edgeDefaultColor[1], edgeDefaultColor[2]);
+	}
 
-	//graph->GetVertexData()->AddArray(vertexColors);
-	//graph->GetVertexData()->AddArray(vertexIDarrays);
-	//graph->GetVertexData()->AddArray(vertexLabel);
-	//graph->GetEdgeData()->AddArray(weights);
-	//graph->GetEdgeData()->AddArray(edgeColors);
-	//
-	////theme.TakeReference(vtkViewTheme::CreateMellowTheme());
-	//theme->SetLineWidth(3);
-	//theme->SetCellOpacity(0.9);
-	//theme->SetCellAlphaRange(0.8,0.8);
-	//theme->SetPointSize(5);
-	////theme->SetCellColor(0.6,0.6,0.6);
-	//theme->SetSelectedCellColor(selectColor);
-	//theme->SetSelectedPointColor(selectColor); 
-	//theme->SetVertexLabelColor(0.3,0.3,0.3);
-	//theme->SetBackgroundColor(1,1,1); 
-	//theme->SetBackgroundColor2(1,1,1);
+	graph->GetVertexData()->AddArray(vertexColors);
+	graph->GetVertexData()->AddArray(vertexIDarrays);
+	graph->GetVertexData()->AddArray(vertexLabel);
+	graph->GetEdgeData()->AddArray(weights);
+	graph->GetEdgeData()->AddArray(edgeColors);
+	
+	//theme.TakeReference(vtkViewTheme::CreateMellowTheme());
+	theme->SetLineWidth(3);
+	theme->SetCellOpacity(0.9);
+	theme->SetCellAlphaRange(0.8,0.8);
+	theme->SetPointSize(5);
+	//theme->SetCellColor(0.6,0.6,0.6);
+	theme->SetSelectedCellColor(selectColor);
+	theme->SetSelectedPointColor(selectColor); 
+	theme->SetVertexLabelColor(0.3,0.3,0.3);
+	theme->SetBackgroundColor(1,1,1); 
+	theme->SetBackgroundColor2(1,1,1);
 
-	//vtkSmartPointer<vtkLookupTable> scalarbarLut = vtkSmartPointer<vtkLookupTable>::New();
-	//scalarbarLut->SetTableRange (0, 1);
-	//scalarbarLut->SetNumberOfTableValues(COLOR_MAP2_SIZE);
-	//for(int index = 0; index < COLOR_MAP2_SIZE; index++)
-	//{
-	//	rgb rgbscalar = COLORMAP2[index];
-	//	scalarbarLut->SetTableValue(index, rgbscalar.r, rgbscalar.g, rgbscalar.b);
-	//}
-	//scalarbarLut->Build();
+	vtkSmartPointer<vtkLookupTable> scalarbarLut = vtkSmartPointer<vtkLookupTable>::New();
+	scalarbarLut->SetTableRange (0, 1);
+	scalarbarLut->SetNumberOfTableValues(COLOR_MAP2_SIZE);
+	for(int index = 0; index < COLOR_MAP2_SIZE; index++)
+	{
+		rgb rgbscalar = COLORMAP2[index];
+		scalarbarLut->SetTableValue(index, rgbscalar.r, rgbscalar.g, rgbscalar.b);
+	}
+	scalarbarLut->Build();
 
-	//vtkSmartPointer<vtkScalarBarActor> scalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
-	//scalarBar->SetLookupTable(scalarbarLut);
-	//scalarBar->SetTitle("Color Map");
-	//scalarBar->SetNumberOfLabels(11);
-	//scalarBar->GetTitleTextProperty()->SetColor(0,0,0);
-	//scalarBar->GetTitleTextProperty()->SetFontSize(10);
-	//scalarBar->GetLabelTextProperty()->SetColor(0,0,0);
-	//scalarBar->GetTitleTextProperty()->SetFontSize (10);
-	//scalarBar->SetMaximumHeightInPixels(1000);
-	//scalarBar->SetMaximumWidthInPixels(100);
+	vtkSmartPointer<vtkScalarBarActor> scalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
+	scalarBar->SetLookupTable(scalarbarLut);
+	scalarBar->SetTitle("Color Map");
+	scalarBar->SetNumberOfLabels(11);
+	scalarBar->GetTitleTextProperty()->SetColor(0,0,0);
+	scalarBar->GetTitleTextProperty()->SetFontSize(10);
+	scalarBar->GetLabelTextProperty()->SetColor(0,0,0);
+	scalarBar->GetTitleTextProperty()->SetFontSize (10);
+	scalarBar->SetMaximumHeightInPixels(1000);
+	scalarBar->SetMaximumWidthInPixels(100);
 
-	//this->view->GetRenderer()->AddActor2D(scalarBar);
+	this->view->GetRenderer()->AddActor2D(scalarBar);
 
-	//this->view->RemoveAllRepresentations();
-	//this->view->SetRepresentationFromInput( graph);
-	//this->view->SetEdgeLabelVisibility(true);
-	//this->view->SetColorVertices(true); 
-	//this->view->SetColorEdges(true);
-	//this->view->SetVertexLabelVisibility(true);
+	this->view->RemoveAllRepresentations();
+	this->view->SetRepresentationFromInput( graph);
+	this->view->SetEdgeLabelVisibility(true);
+	this->view->SetColorVertices(true); 
+	this->view->SetColorEdges(true);
+	this->view->SetVertexLabelVisibility(true);
 
-	//this->view->SetVertexColorArrayName("Color");
-	//this->view->SetEdgeColorArrayName("EdgeColor");
-	//this->view->SetEdgeLabelArrayName("edgeLabel");
-	//this->view->SetVertexLabelArrayName("vertexLabel");
-	//this->view->SetVertexLabelFontSize(5);
+	this->view->SetVertexColorArrayName("Color");
+	this->view->SetEdgeColorArrayName("EdgeColor");
+	this->view->SetEdgeLabelArrayName("edgeLabel");
+	this->view->SetVertexLabelArrayName("vertexLabel");
+	this->view->SetVertexLabelFontSize(5);
 
- //   theme->SetPointLookupTable(lookupTable);
-	//theme->SetCellLookupTable(edgeLookupTable);
-	//this->view->ApplyViewTheme(theme);
+    theme->SetPointLookupTable(lookupTable);
+	theme->SetCellLookupTable(edgeLookupTable);
+	this->view->ApplyViewTheme(theme);
 
-	//this->view->SetLayoutStrategyToPassThrough();
-	//this->view->SetVertexLabelFontSize(15);
+	this->view->SetLayoutStrategyToPassThrough();
+	this->view->SetVertexLabelFontSize(15);
 }
 
 void GraphWindow::AdjustedLayout(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, std::vector<long int> *treeOrder, std::vector<double> *colorVec, std::vector<double> *disVec)

@@ -84,7 +84,7 @@ void TSNE::run(double* X, int N, int D, double* Y, int no_dims, double perplexit
         P = (double*) malloc(N * N * sizeof(double));
         if(P == NULL) { cout<<"Memory allocation failed!\n"; }
         computeGaussianPerplexity(X, N, D, P, perplexity);
-    
+
         // Symmetrize input similarities
         printf("Symmetrizing...\n");
         for(int n = 0; n < N; n++) {
@@ -123,6 +123,14 @@ void TSNE::run(double* X, int N, int D, double* Y, int no_dims, double perplexit
     if(exact) printf("Done in %4.2f seconds!\nLearning embedding...\n", (float) (end - start) / CLOCKS_PER_SEC);
     else printf("Done in %4.2f seconds (sparsity = %f)!\nLearning embedding...\n", (float) (end - start) / CLOCKS_PER_SEC, (double) row_P[N] / ((double) N * (double) N));
     start = clock();
+
+	//for (int n = 0; n < N; n++) {
+	//	for(int m = n + 1; m < N; m++) {
+	//		std::cout<< P[n * N + m]<<"\t";
+	//	}
+	//}
+	//std::cout<< std::endl;
+
 	for(int iter = 0; iter < max_iter; iter++) {
         
         // Compute (approximate) gradient
@@ -146,11 +154,11 @@ void TSNE::run(double* X, int N, int D, double* Y, int no_dims, double perplexit
             else      { for(int i = 0; i < row_P[N]; i++) val_P[i] /= 12.0; }
         }
         if(iter == mom_switch_iter) momentum = final_momentum;
-        
-        // Print out progress
+
         if((iter > 0 && iter % 50 == 0) || iter == max_iter - 1) {
             end = clock();
             double C = .0;
+
             if(exact) C = evaluateError(P, Y, N, no_dims);
             else      C = evaluateError(row_P, col_P, val_P, Y, N, no_dims, theta);  // doing approximate computation here!
             if(iter == 0)

@@ -60,6 +60,7 @@ protected slots:
 	void TestKTrend();
 	void TestLTrend();
 	void autoClick();
+	void showMSTGraph();
 	//void UpdateVisualization();
 
 private:
@@ -100,6 +101,9 @@ private:
 	QPushButton *heatmapButton;  // show progression heatmap  
 	
 	// visualization
+	QLabel *treeVisLabel;   
+	QPushButton *treeVisButton;
+
 	QLabel *visualLabel;   
 	QPushButton *autoTrendButton;
 	QLabel *perplexLabel;

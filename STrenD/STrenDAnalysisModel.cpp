@@ -4306,14 +4306,8 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 			if( abs(interval) < 1e-6)
 			{
 				state[i] = 0;
+				std::cout<< "2 Remove module "<<i<<std::endl;
 				continue;
-			}
-
-			if( i == 25)
-			{
-				std::cout<< modDisti<<std::endl<<std::endl;
-				std::cout<< histModi<<std::endl<<std::endl;
-				std::cout<< histi<<std::endl<<std::endl;
 			}
 
 			vnl_matrix<double> flowMatrix( nbins, nbins);
