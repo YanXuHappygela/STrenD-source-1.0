@@ -13,7 +13,6 @@
 #include "ftkCommon/ftkUtils.h"
 #include "transportSimplex.h"
 #include <iomanip>
-#include "ClusClus/Biclustering.h"
 #include "itkImageFileWriter.h"
 #include <itkImage.h>
 #include <itkShanbhagThresholdImageFilter.h>
@@ -4228,6 +4227,7 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 			Hist(meanVec, minterval, mmin, histMean, binTest);
 			unsigned int tmpMax = histMean.max_value();
 			unsigned int maxHisti = (unsigned int)(histMean.sum() * 0.9);   // if the module's full graph edge distribution highly agglomerate at one bin, then discard this module.
+			
 			if(tmpMax >= maxHisti)
 			{
 				std::cout<< "1 Remove module "<<i<<std::endl;
@@ -4252,15 +4252,16 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 				}
 			}
 
+			vnl_matrix< double> modDisti;
+			EuclideanBlockDist(modulei, modDisti);
+			double min = 0;
+			double max = 0;
+			GetDiagnalMinMax(modDisti, min, max);
+			double interval = ( max - min) / nbins;
+			
+			
 			if(state[i])
 			{
-				vnl_matrix< double> modDisti;
-				EuclideanBlockDist(modulei, modDisti);
-				double min = 0;
-				double max = 0;
-				GetDiagnalMinMax(modDisti, min, max);
-				double interval = ( max - min) / nbins;
-
 				std::vector<unsigned int> nearIndex;
 				vnl_vector<double> nearWeights;
 				FindNearestKSample(modDisti, nearIndex, kNeighbor);
@@ -4301,6 +4302,20 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 			Hist(modDisti, interval, min, histModi, nbins); 
 			GetKWeights( modDisti, kNearIndex[i], knnWeights, kNeighbor);
 			Hist( knnWeights, interval, min, histi, nbins);
+
+			if( abs(interval) < 1e-6)
+			{
+				state[i] = 0;
+				continue;
+			}
+
+			if( i == 25)
+			{
+				std::cout<< modDisti<<std::endl<<std::endl;
+				std::cout<< histModi<<std::endl<<std::endl;
+				std::cout<< histi<<std::endl<<std::endl;
+			}
+
 			vnl_matrix<double> flowMatrix( nbins, nbins);
 			double discale = EarthMoverDistance( histModi, histi, flowMatrix, nbins, true);
 			

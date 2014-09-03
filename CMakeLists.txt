@@ -58,7 +58,6 @@ if(BUILD_OPENMP)
 endif(BUILD_OPENMP)
 
 add_subdirectory(STrenDEditor)
-add_subdirectory(ClusClus)
 add_subdirectory(STrenD)
 
 set( common_libraries

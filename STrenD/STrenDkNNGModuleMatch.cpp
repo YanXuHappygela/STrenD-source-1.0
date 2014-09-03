@@ -7,7 +7,7 @@
 #include <QMessageBox>
 //define NDEBUG
 #include <assert.h>
-#include "ClusClus/clusclus.h"
+#include "clusclus.h"
 #include <cstdlib>
 #include <ctime>
 #include "tsne.h"

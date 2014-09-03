@@ -9,7 +9,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <map>
 #include <QString>
-#include "ClusClus/clusclus.h"
+#include "clusclus.h"
 
 typedef boost::adjacency_list< boost::vecS, boost::vecS, boost::undirectedS, 
 	boost::property< boost::vertex_distance_t, unsigned int>, boost::property< boost::edge_weight_t, double> > Graph;

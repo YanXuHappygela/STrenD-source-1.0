@@ -49,11 +49,6 @@ limitations under the License.
 #include "ftkCommon/ftkUtils.h"
 //#include "ftkGUI/GraphWindow.h"
 #include "ftkGUI/GraphWindowForNewSelection.h"
-#include "ClusClus/clusclus.h"
-#include "ClusClus/Dendrogram.h"
-#include "ClusClus/HeatmapWindow.h"
-#include "ClusClus/Heatmap.h"
-#include "ClusClus/LocalGeometryRef.h"
 #include "STrenD/STrenDkNNGModuleMatch.h"
 #include <vector>
 #include <string>
