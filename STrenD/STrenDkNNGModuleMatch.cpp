@@ -118,7 +118,7 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
 	perplexLabel = new QLabel(tr("Perplexity:"), this); 
 	perplexityBox->setValue(4);
 	perplexityBox->setMinimum(1); 
-	perplexityBox->setSingleStep(1);
+	perplexityBox->setSingleStep(0.1);
 
 	thetaLabel = new QLabel(tr("Theta:"), this); 
 	thetaBox = new QDoubleSpinBox(this);
@@ -592,6 +592,24 @@ void STrenDkNNGModuleMatch::showMSTGraph()
 	clusterNum[0] = clusAverageMat.rows();
 	std::cout<< clusterNum[0]<<std::endl;
 
+	//std::vector<double> colorVec2(68);
+	//for(size_t i = 0; i < 8; i++)
+	//{
+	//	colorVec2[i] = 0;
+	//}
+	//for(size_t i = 8; i < 26; i++)
+	//{
+	//	colorVec2[i] = 0.3;
+	//}
+	//for(size_t i = 26; i < 52; i++)
+	//{
+	//	colorVec2[i] = 0.6;
+	//}
+	//for(size_t i = 52; i < 68; i++)
+	//{
+	//	colorVec2[i] = 0.9;
+	//}
+
 	vtkSmartPointer<vtkTable> treeTable = STrenDModel->GenerateMST( clusAverageMat, selFeatureID, clusterNum);
 	std::cout<< treeTable->GetNumberOfRows()<<"\t"<<treeTable->GetNumberOfColumns()<<std::endl;
 
@@ -599,7 +617,7 @@ void STrenDkNNGModuleMatch::showMSTGraph()
 	std::vector<long int> TreeOrder;
 	STrenDModel->GetTableHeaders( headers);
 	this->graph->setModels(data, selection);
-	this->graph->SetTreeTable( treeTable, headers[0], headers[1], headers[2]);
+	this->graph->SetTreeTable( treeTable, headers[0], headers[1], headers[2]/*, &colorVec2*/);
 	try
 	{
 		this->graph->ShowGraphWindow();
@@ -694,15 +712,14 @@ void STrenDkNNGModuleMatch::viewTrendAuto(bool bAuto)
 
 	int no_dims = dimBox->value();
 	double* Y = (double*)calloc(N * no_dims, sizeof(double));
-	TSNE *tSNEVis = new TSNE();
-	tSNEVis->run(X, N, D, Y, no_dims, perplexityBox->value(), thetaBox->value());
+
+	TSNE::run(X, N, D, Y, no_dims, perplexityBox->value(), thetaBox->value());
 	tableAfterDimReduct = vtkSmartPointer<vtkTable>::New();
 	STrenDModel->doubleArrayToTable(tableAfterDimReduct, Y, N, no_dims);
 	ftk::SaveTable("vis_coordinates.txt",tableAfterDimReduct);
-	
-	delete tSNEVis;
-	delete X;
-	delete Y;
+
+	free(X);
+	free(Y);
 
 	if( no_dims == 3)
 	{
@@ -984,6 +1001,7 @@ void STrenDkNNGModuleMatch::regenerateTrendTree()
 
 		std::vector<std::string> headers;
 		STrenDModel->GetTableHeaders( headers);
+
 		this->graph->SetTreeTable( newtable, headers[0], headers[1], headers[2]);
 		//this->graph->SetGraphTableToPassThrough( newtable, sampleIndex.size(), headers[0], headers[1], headers[2], &colorVec, &percentVec);
 		try

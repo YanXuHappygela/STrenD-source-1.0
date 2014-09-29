@@ -3699,7 +3699,15 @@ vtkSmartPointer<vtkTable> STrenDAnalysisModel::GetNormalizedTableAfterFeatureSel
 {
 	vtkSmartPointer<vtkTable> table = vtkSmartPointer<vtkTable>::New();
 	vtkSmartPointer<vtkTable> normalTable = GetDataTableAfterCellCluster();
-	table->AddColumn(normalTable->GetColumn(0));
+
+	vtkSmartPointer<vtkDoubleArray> columnID = vtkSmartPointer<vtkDoubleArray>::New();
+	columnID->SetName( "Id");
+	for( int i = 0; i < normalTable->GetNumberOfRows(); i++)
+	{
+		columnID->InsertNextValue( indMapFromIndToVertex[i]);
+	}
+	table->AddColumn(columnID);
+
 	for(int i = 0; i < selectedFeatures.size(); i++)
 	{		
 		table->AddColumn(normalTable->GetColumn(selectedFeatures[i] + 1));
@@ -3727,7 +3735,13 @@ int STrenDAnalysisModel::tableToDoubleArray(vtkSmartPointer<vtkTable> table, dou
 void STrenDAnalysisModel::doubleArrayToTable(vtkSmartPointer<vtkTable> table, double *arr, int N, int D)
 {
 	vtkSmartPointer<vtkTable> normalTable = GetDataTableAfterCellCluster();
-	table->AddColumn(normalTable->GetColumn(0));
+	vtkSmartPointer<vtkDoubleArray> columnID = vtkSmartPointer<vtkDoubleArray>::New();
+	columnID->SetName( "Id");
+	for( int i = 0; i < N; i++)
+	{
+		columnID->InsertNextValue( indMapFromIndToVertex[i]);
+	}
+	table->AddColumn(columnID);
 
 	for(int i = 0; i < D; i++)
 	{	

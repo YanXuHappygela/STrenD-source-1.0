@@ -43,7 +43,7 @@ STrenDEditor::STrenDEditor(QWidget * parent, Qt::WindowFlags flags)
 	this->flag = 0;
 
 	setCentralWidget(table);
-	setWindowTitle(tr("STrenDEditor-v1.0"));
+	setWindowTitle(tr("STrenDEditor-v1.1"));
 	connect(selection, SIGNAL(changed()), this, SLOT(updateStatistics()));
     
 	this->ClusterSelections = new SelectiveClustering();

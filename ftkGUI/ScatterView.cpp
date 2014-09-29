@@ -400,7 +400,7 @@ void ScatterView::refreshPixmap()
 {
 	this->updateAxis();
 	pixmap = QPixmap(size());
-	pixmap.fill(QColor(220,220,220));
+	pixmap.fill(QColor(255,255,255));
 	QPainter painter(&pixmap);
 	painter.initFrom(this);
 	drawGrid(&painter);
@@ -438,10 +438,10 @@ void ScatterView::drawGrid(QPainter *painter)
 		int x = rect.left() + (i * (rect.width() - 1) / settings.numXTicks);
 		double label = settings.minX + (i * settings.spanX() / settings.numXTicks);
 		//painter->setPen(quiteDark);
-		painter->setPen(QPen(QBrush(Qt::black),1,Qt::DotLine));
-		painter->drawLine(x, rect.top(), x, rect.bottom());
-		//painter->setPen(light);
-		painter->drawLine(x, rect.bottom(), x, rect.bottom() + 5);
+		//painter->setPen(QPen(QBrush(Qt::black),1,Qt::DotLine));
+		//painter->drawLine(x, rect.top(), x, rect.bottom());
+		////painter->setPen(light);
+		//painter->drawLine(x, rect.bottom(), x, rect.bottom() + 5);
 		painter->setPen(QPen(QBrush(Qt::black),1));
 		painter->drawText(x - 50, rect.bottom() + 5, 100, 15, Qt::AlignHCenter | Qt::AlignTop, QString::number(label));
 	}
@@ -450,10 +450,10 @@ void ScatterView::drawGrid(QPainter *painter)
 		int y = rect.bottom() - (j * (rect.height() - 1) / settings.numYTicks);
 		double label = settings.minY + (j * settings.spanY() / settings.numYTicks);
 		//painter->setPen(quiteDark);
-		painter->setPen(QPen(QBrush(Qt::black),1,Qt::DotLine));
-		painter->drawLine(rect.left(), y, rect.right(), y);
-		//painter->setPen(light);
-		painter->drawLine(rect.left() - 5, y, rect.left(), y);
+		//painter->setPen(QPen(QBrush(Qt::black),1,Qt::DotLine));
+		//painter->drawLine(rect.left(), y, rect.right(), y);
+		////painter->setPen(light);
+		//painter->drawLine(rect.left() - 5, y, rect.left(), y);
 		painter->setPen(QPen(QBrush(Qt::black),1));
 		painter->drawText(rect.left() - LMargin, y - 10, LMargin - 5, 20,
 			Qt::AlignRight | Qt::AlignVCenter,

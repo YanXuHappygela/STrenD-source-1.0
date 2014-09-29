@@ -81,10 +81,9 @@ void TSNE::run(double* X, int N, int D, double* Y, int no_dims, double perplexit
     if(exact) {
         
         // Compute similarities
-        P = (double*) malloc(N * N * sizeof(double));
+        P = (double*) calloc(N * N, sizeof(double));
         if(P == NULL) { cout<<"Memory allocation failed!\n"; }
         computeGaussianPerplexity(X, N, D, P, perplexity);
-
         // Symmetrize input similarities
         printf("Symmetrizing...\n");
         for(int n = 0; n < N; n++) {
@@ -158,7 +157,6 @@ void TSNE::run(double* X, int N, int D, double* Y, int no_dims, double perplexit
         if((iter > 0 && iter % 50 == 0) || iter == max_iter - 1) {
             end = clock();
             double C = .0;
-
             if(exact) C = evaluateError(P, Y, N, no_dims);
             else      C = evaluateError(row_P, col_P, val_P, Y, N, no_dims, theta);  // doing approximate computation here!
             if(iter == 0)
@@ -325,10 +323,9 @@ double TSNE::evaluateError(int* row_P, int* col_P, double* val_P, double* Y, int
 void TSNE::computeGaussianPerplexity(double* X, int N, int D, double* P, double perplexity) {
 	
 	// Compute the squared Euclidean distance matrix
-	double* DD = (double*) malloc(N * N * sizeof(double));
+	double* DD = (double*) calloc(N * N, sizeof(double));
     if(DD == NULL) { cout<<"Memory allocation failed!\n"; }
 	computeSquaredEuclideanDistance(X, N, D, DD);
-	
 	// Compute the Gaussian kernel row by row
 	for(int n = 0; n < N; n++) {
         
@@ -338,7 +335,7 @@ void TSNE::computeGaussianPerplexity(double* X, int N, int D, double* P, double 
 		double min_beta = -DBL_MAX;
 		double max_beta =  DBL_MAX;
 		double tol = 1e-5;
-        double sum_P;
+        double sum_P = 0;
 		
 		// Iterate until we found a good perplexity
 		int iter = 0;

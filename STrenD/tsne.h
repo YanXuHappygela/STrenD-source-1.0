@@ -41,24 +41,24 @@ static inline double sign_tsne(double x) { return (x == .0 ? .0 : (x < .0 ? -1.0
 class TSNE
 {    
 public:
-    void run(double* X, int N, int D, double* Y, int no_dims, double perplexity, double theta = 0);
+    static void run(double* X, int N, int D, double* Y, int no_dims, double perplexity, double theta = 0);
     bool load_data(double** data, int* n, int* d, int* no_dims, double* theta, double* perplexity, int* rand_seed);
     void save_data(double* data, int* landmarks, double* costs, int n, int d);
 
-    void symmetrizeMatrix(int** row_P, int** col_P, double** val_P, int N); // should be static?!
+    static void symmetrizeMatrix(int** row_P, int** col_P, double** val_P, int N); // should be static?!
 
     
 private:
-    void computeGradient(double* P, int* inp_row_P, int* inp_col_P, double* inp_val_P, double* Y, int N, int D, double* dC, double theta);
-    void computeExactGradient(double* P, double* Y, int N, int D, double* dC);
-    double evaluateError(double* P, double* Y, int N, int D);
-    double evaluateError(int* row_P, int* col_P, double* val_P, double* Y, int N, int D, double theta);
-    void zeroMean(double* X, int N, int D);
-    void computeGaussianPerplexity(double* X, int N, int D, double* P, double perplexity);
-    void computeGaussianPerplexity(double* X, int N, int D, int** _row_P, int** _col_P, double** _val_P, double perplexity, int K);
-    void computeGaussianPerplexity(double* X, int N, int D, int** _row_P, int** _col_P, double** _val_P, double perplexity, double threshold);
-    void computeSquaredEuclideanDistance(double* X, int N, int D, double* DD);
-    double randn();
+    static void computeGradient(double* P, int* inp_row_P, int* inp_col_P, double* inp_val_P, double* Y, int N, int D, double* dC, double theta);
+    static void computeExactGradient(double* P, double* Y, int N, int D, double* dC);
+    static double evaluateError(double* P, double* Y, int N, int D);
+    static double evaluateError(int* row_P, int* col_P, double* val_P, double* Y, int N, int D, double theta);
+    static void zeroMean(double* X, int N, int D);
+    static void computeGaussianPerplexity(double* X, int N, int D, double* P, double perplexity);
+    static void computeGaussianPerplexity(double* X, int N, int D, int** _row_P, int** _col_P, double** _val_P, double perplexity, int K);
+    static void computeGaussianPerplexity(double* X, int N, int D, int** _row_P, int** _col_P, double** _val_P, double perplexity, double threshold);
+    static void computeSquaredEuclideanDistance(double* X, int N, int D, double* DD);
+    static double randn();
 };
 
 #endif

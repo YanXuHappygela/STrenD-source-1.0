@@ -228,7 +228,7 @@ void GraphWindow::SetGraphTable(vtkSmartPointer<vtkTable> table, std::string ID1
 	theme->SetLineWidth(5);
 	theme->SetCellOpacity(0.9);
 	theme->SetCellAlphaRange(0.8,0.8);
-	theme->SetPointSize(8);
+	theme->SetPointSize(10);
 	theme->SetSelectedCellColor(1,0,0);
 	theme->SetSelectedPointColor(1,0,0);
 	theme->SetVertexLabelColor(1,1,1);
@@ -286,8 +286,9 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 	}
 
 	
-	if( colorVec)
+	if( colorVec != NULL)
 	{
+		std::cout<< "Set color Vector"<<std::endl;
 		colorVector.set_size(colorVec->size());
 		for( int i = 0; i < colorVec->size(); i++)
 		{
@@ -507,7 +508,7 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 	std::vector<Point> newPointList;
 	CalculateCoordinates(adj_matrix, oldPointList);
 	newPointList = oldPointList;
-	UpdateCoordinatesByEdgeWeights( oldPointList, vertextList, newPointList);
+	//UpdateCoordinatesByEdgeWeights( oldPointList, vertextList, newPointList);
 
 	//std::vector<Point> newPointList;
 	//CalculateCoordinates(adj_matrix, newPointList);
@@ -541,12 +542,12 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 	for( vtkIdType i = 0; i < table->GetNumberOfRows() + 1; i++)               
 	{             
 		vertexColors->InsertNextValue( i);
-		int k = int( featureColorVector[i] * COLOR_MAP2_SIZE + 0.5);
-		if( k >= COLOR_MAP2_SIZE)
+		int k = int( featureColorVector[i] * COLOR_MAP_SIZE + 0.5);
+		if( k >= COLOR_MAP_SIZE)
 		{
-			k = COLOR_MAP2_SIZE - 1;
+			k = COLOR_MAP_SIZE - 1;
 		}
-		this->lookupTable->SetTableValue(i, COLORMAP2[k].r, COLORMAP2[k].g, COLORMAP2[k].b); 
+		this->lookupTable->SetTableValue(i, COLORMAP[k].r, COLORMAP[k].g, COLORMAP[k].b); 
 	}
 	lookupTable->Build();
 
@@ -571,7 +572,7 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 	theme->SetLineWidth(3);
 	theme->SetCellOpacity(0.9);
 	theme->SetCellAlphaRange(0.8,0.8);
-	theme->SetPointSize(5);
+	theme->SetPointSize(10);
 	//theme->SetCellColor(0.6,0.6,0.6);
 	theme->SetSelectedCellColor(selectColor);
 	theme->SetSelectedPointColor(selectColor); 
@@ -581,10 +582,10 @@ void GraphWindow::SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1,
 
 	vtkSmartPointer<vtkLookupTable> scalarbarLut = vtkSmartPointer<vtkLookupTable>::New();
 	scalarbarLut->SetTableRange (0, 1);
-	scalarbarLut->SetNumberOfTableValues(COLOR_MAP2_SIZE);
-	for(int index = 0; index < COLOR_MAP2_SIZE; index++)
+	scalarbarLut->SetNumberOfTableValues(COLOR_MAP_SIZE);
+	for(int index = 0; index < COLOR_MAP_SIZE; index++)
 	{
-		rgb rgbscalar = COLORMAP2[index];
+		rgb rgbscalar = COLORMAP[index];
 		scalarbarLut->SetTableValue(index, rgbscalar.r, rgbscalar.g, rgbscalar.b);
 	}
 	scalarbarLut->Build();
@@ -630,7 +631,7 @@ void GraphWindow::AdjustedLayout(vtkSmartPointer<vtkTable> table, std::string ID
 	double x = 0;
 	double y = 0;
 	int linewidth = 3;
-	int pointSize = 5;
+	int pointSize = 10;
 	file >> linewidth;
 	file >> pointSize;
 
@@ -841,12 +842,12 @@ void GraphWindow::AdjustedLayout(vtkSmartPointer<vtkTable> table, std::string ID
 	for( vtkIdType i = 0; i < table->GetNumberOfRows() + 1; i++)               
 	{             
 		vertexColors->InsertNextValue( i);
-		int k = int( featureColorVector[i] * COLOR_MAP2_SIZE + 0.5);
-		if( k >= COLOR_MAP2_SIZE)
+		int k = int( featureColorVector[i] * COLOR_MAP_SIZE + 0.5);
+		if( k >= COLOR_MAP_SIZE)
 		{
-			k = COLOR_MAP2_SIZE - 1;
+			k = COLOR_MAP_SIZE - 1;
 		}
-		this->lookupTable->SetTableValue(i, COLORMAP2[k].r, COLORMAP2[k].g, COLORMAP2[k].b); 
+		this->lookupTable->SetTableValue(i, COLORMAP[k].r, COLORMAP[k].g, COLORMAP[k].b); 
 	}
 	lookupTable->Build();
 
@@ -881,10 +882,10 @@ void GraphWindow::AdjustedLayout(vtkSmartPointer<vtkTable> table, std::string ID
 
 	vtkSmartPointer<vtkLookupTable> scalarbarLut = vtkSmartPointer<vtkLookupTable>::New();
 	scalarbarLut->SetTableRange (0, 1);
-	scalarbarLut->SetNumberOfTableValues(COLOR_MAP2_SIZE);
-	for(int index = 0; index < COLOR_MAP2_SIZE; index++)
+	scalarbarLut->SetNumberOfTableValues(COLOR_MAP_SIZE);
+	for(int index = 0; index < COLOR_MAP_SIZE; index++)
 	{
-		rgb rgbscalar = COLORMAP2[index];
+		rgb rgbscalar = COLORMAP[index];
 		scalarbarLut->SetTableValue(index, rgbscalar.r, rgbscalar.g, rgbscalar.b);
 	}
 	scalarbarLut->Build();
@@ -1611,7 +1612,7 @@ void GraphWindow::SetGraphTableToPassThrough(vtkSmartPointer<vtkTable> table, un
 	theme->SetLineWidth(3);
 	theme->SetCellOpacity(0.9);
 	theme->SetCellAlphaRange(0.8,0.8);
-	theme->SetPointSize(5);
+	theme->SetPointSize(10);
 	theme->SetCellColor(0.6,0.6,0.6);
 	theme->SetSelectedCellColor(selectColor);
 	theme->SetSelectedPointColor(selectColor); 
@@ -1621,10 +1622,10 @@ void GraphWindow::SetGraphTableToPassThrough(vtkSmartPointer<vtkTable> table, un
 
 	vtkSmartPointer<vtkLookupTable> scalarbarLut = vtkSmartPointer<vtkLookupTable>::New();
 	scalarbarLut->SetTableRange (0, 1);
-	scalarbarLut->SetNumberOfTableValues(COLOR_MAP2_SIZE);
-	for(int index = 0; index < COLOR_MAP2_SIZE; index++)
+	scalarbarLut->SetNumberOfTableValues(COLOR_MAP_SIZE);
+	for(int index = 0; index < COLOR_MAP_SIZE; index++)
 	{
-		rgb rgbscalar = COLORMAP2[index];
+		rgb rgbscalar = COLORMAP[index];
 		scalarbarLut->SetTableValue(index, rgbscalar.r, rgbscalar.g, rgbscalar.b);
 	}
 	scalarbarLut->Build();
@@ -1905,13 +1906,13 @@ void GraphWindow::RestoreLookupTable()
 {
 	for( int i = 0; i < colorVector.size(); i++)               
 	{
-		featureColorVector[i] = colorVector[i];
-		int k = int( featureColorVector[i] * COLOR_MAP2_SIZE + 0.5);
-		if( k >= COLOR_MAP2_SIZE)
+		colorVector[i] = featureColorVector[i];
+		int k = int( featureColorVector[i] * COLOR_MAP_SIZE + 0.5);
+		if( k >= COLOR_MAP_SIZE)
 		{
-			k = COLOR_MAP2_SIZE - 1;
+			k = COLOR_MAP_SIZE - 1;
 		}
-		this->lookupTable->SetTableValue(i, COLORMAP2[k].r, COLORMAP2[k].g, COLORMAP2[k].b); 
+		this->lookupTable->SetTableValue(i, COLORMAP[k].r, COLORMAP[k].g, COLORMAP[k].b); 
 	}
 	lookupTable->Build();
 	//this->view->GetRenderer()->RemoveActor2D(cornAnnotation);
@@ -2078,12 +2079,12 @@ void GraphWindow::UpdataLookupTable( std::set<long int>& IDs)
 		}
 		else if ( featureColorVector.size() > 0)
 		{
-			int k = int( featureColorVector[i] * COLOR_MAP2_SIZE + 0.5);
-			if( k >= COLOR_MAP2_SIZE)
+			int k = int( featureColorVector[i] * COLOR_MAP_SIZE + 0.5);
+			if( k >= COLOR_MAP_SIZE)
 			{
-				k = COLOR_MAP2_SIZE - 1;
+				k = COLOR_MAP_SIZE - 1;
 			}
-			this->lookupTable->SetTableValue(i, COLORMAP2[k].r, COLORMAP2[k].g, COLORMAP2[k].b); // color the vertices- blue
+			this->lookupTable->SetTableValue(i, COLORMAP[k].r, COLORMAP[k].g, COLORMAP[k].b); // color the vertices- blue
 		}
 		else
 		{
