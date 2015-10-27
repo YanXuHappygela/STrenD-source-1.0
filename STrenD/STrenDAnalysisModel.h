@@ -62,12 +62,17 @@ public:
 	void HierachicalClustering();
 	void ClusterSamples(double cor);
 	int ClusterSamples( double cor, vnl_matrix<double> &mat, vnl_vector<unsigned int> &index);
-								
+	int StrictClusterFeature(double cor);
+
 	void GetCellClusterSize( std::vector<int> &clusterSize);
 	vtkSmartPointer<vtkTable> GetDataTableAfterCellCluster();
 	void GetFeatureIdbyModId(std::vector<unsigned int> &modID, std::vector<unsigned int> &featureID);
+	void GetModuleWeightsByIndividualKNNMatching(std::vector<unsigned int> &moduleID, std::vector<double> &moduleWeights, unsigned int kNeighbor, int nbins);
+	void GetFeatureWeights(std::vector<unsigned int> &moduleID, std::vector<double> &featureWeights, unsigned int kNeighbor, int nbins);
+	void RefineFeatures(std::vector<unsigned int> &moduleID, std::vector<unsigned int> &selModuleIDUpdated, unsigned int kNeighbor, int nbins, int countThres);
+	void GetSingleLinkageClusterAverage(std::vector< std::vector< long int> > &index, vnl_matrix<double> &clusAverageMat, vnl_vector<double> &meanVec);  // after single linkage clustering
+	double GetSingleLinkageCHIndex(std::vector< std::vector< long int> > &index, vnl_matrix<double> &clusAverageMat, vnl_vector<double> &meanVec, double &totalWVar, double &totalBVar);
 
-	void GetSingleLinkageClusterAverage(std::vector< std::vector< long int> > &index, vnl_matrix<double> &clusAverageMat);  // after single linkage clustering
 	void GetClusterMapping( std::map< int, int> &index);
 	void GetSingleLinkageClusterMapping(std::vector< std::vector< long int> > &index, std::vector<int> &newIndex);   
 	void GetArrangedMatrixByConnectedComponent(std::vector< std::vector< long int> > &index, vnl_matrix<double> &mat);
@@ -87,9 +92,9 @@ public:
 	void GetClusClusNSData(clusclus* c1);
 	vtkSmartPointer<vtkTable> GenerateProgressionTree( std::string& selectedModules);
 	void GetSelectedFeatures(std::set<long int>& selectedFeatures);
-	void SaveSelectedFeatureNames(QString filename, std::vector<int>& selectedFeatures);
-	void SaveSelectedFeatureNames(QString filename, std::vector<unsigned int>& selectedFeatures);
+	void SaveSelectedFeatureNames(std::string filename, std::vector<unsigned int>& selModuleID, std::vector<double>& moduleWeights, std::vector<double> &featureWeights);
 	vtkSmartPointer<vtkTable> GetNormalizedTableAfterFeatureSelection(std::vector<unsigned int>& selectedFeatures);
+	vtkSmartPointer<vtkTable> GetOriginalTableAfterFeatureSelection(std::vector<unsigned int>& selectedFeatures);
 	int tableToDoubleArray(vtkSmartPointer<vtkTable> table, double *arr, int N, int D);
 	void doubleArrayToTable(vtkSmartPointer<vtkTable> table, double *arr, int N, int D);
 	double GetEMDSelectedPercentage(double thres);
@@ -115,13 +120,17 @@ public:
 	void GetPercentage(std::vector< std::vector< long int> > &clusIndex, std::vector< double> &colorVec);
 	void GetCloseToDevicePercentage( std::vector< std::vector< long int> > &clusIndex, std::vector< double> &disPer, double disThreshold);
 	void GetClusterFeatureValue(std::vector< std::vector< long int> > &clusIndex, int nfeature, vnl_vector<double> &featureValue, std::string &featureName);
+	void GetFeatureValue(int nfeature, vnl_vector<double> &featureValue, std::string &featureName);
 	vtkSmartPointer<vtkTable> GetAverModuleTable(std::vector< std::vector< long int> > &clusIndex, std::vector<long int> &TreeOrder, std::vector< int> &selFeatureOrder, std::vector< int> &unselFeatureOrder);
 	void ConvertTableToMatrix(vtkSmartPointer<vtkTable> table, vnl_matrix<double> &mat, std::vector<int> &index, vnl_vector<double> &distance);
+	void ConvertTableToMatrixIdRemoved(vtkSmartPointer<vtkTable> table, vnl_matrix<double> &mat);
 	void ConvertTableToMatrixForValidation(vtkSmartPointer<vtkTable> table, vnl_matrix<double> &mat, std::vector<int> &index, vnl_vector<int> &clusNo);
 	vtkSmartPointer<vtkTable> GetTableForHist(std::vector< int> &selFeatureOrder, std::vector< int> &unselFeatureOrder);
 	int GetConnectedComponent(std::vector< unsigned int> &selFeatureID, std::vector<int> &component);
 	unsigned int GetKNeighborNum();
-
+	vtkSmartPointer<vtkTable> GetDataTableByTreeLevel(std::vector<std::list<int>> &longestPath);
+	vtkSmartPointer<vtkTable> GetOrderedTableByBackBone(vtkSmartPointer<vtkTable> oritable, std::list<int> &backBone);
+	vtkSmartPointer<vtkTable> GetDataTableByLongestCluster(std::vector<std::list<int>> &longestCluster);
 	void BuildMSTForConnectedComponent(std::vector< unsigned int> &selFeatureID, std::vector<int> &component, int connectedNum);
 	void GetComponentMinDistance(std::vector< unsigned int> selFeatureID, std::vector<int> &component, int connectedNum, vnl_matrix<double> &dis);
     bool SearchSubsetsOfFeatures(std::vector< unsigned int> &selModules);
@@ -138,6 +147,7 @@ public:
 	void GetValidationVec(vnl_vector<int> &validationVec);
 	double GetAutoSimilarityThreshold(unsigned int level = 256);
 	void ConvertVertexToClusIndex(std::set<long int> &vertextIds, std::set<int> &clusIndex);
+	int GetMaxIndex();
 
 	static double CaculatePS(unsigned int kNeighbor, unsigned int nbins, vnl_vector<double> &vec1, vnl_vector<double> &vec2, bool debug = false);
 	static double CaculatePSAveragebin(unsigned int kNeighbor, unsigned int nbins, vnl_vector<double> &vec1, vnl_vector<double> &vec2, bool debug = false);
@@ -155,7 +165,9 @@ protected:
 	void GetClusterIndexFromVnlVector(std::vector< std::vector<int> > &clusterIndex, vnl_vector<unsigned int> &index);
 	void GetAverageModule( vnl_matrix<double> &mat, vnl_vector<double> &distance, std::vector< std::vector<int> > &index, vnl_matrix<double> &averageMat, vnl_vector<double> &averageDistance);
 	int ClusterAggFeatures( vnl_matrix<double>& mainmatrix, vnl_vector<unsigned int>& index, vnl_matrix<double>& mean, double cor);
+	
 	vnl_vector<int> GetModuleSize( vnl_vector<unsigned int>& index);
+	unsigned int GetModuleAllSize( vnl_vector<unsigned int>& index, std::vector<unsigned int> &moduleID);
 	void GetCombinedMatrix( vnl_matrix<double> &datamat, vnl_vector<unsigned int>& index, unsigned int moduleId, unsigned int moduleDeleteId, vnl_matrix<double>& mat, vnl_vector<unsigned int>* indexMap = NULL);
 	void GetCombinedMatrix( vnl_matrix<double> &datamat, vnl_vector< unsigned int>& index, std::vector< unsigned int> moduleID, vnl_matrix<double>& mat);
 	void GetCombinedMatrix( vnl_matrix<double> &datamat, int nstart, int nrow, std::vector< unsigned int> selFeatureIDs, vnl_matrix<double>& mat);
@@ -287,7 +299,7 @@ private:
 	vnl_matrix<double> heatmapMatrix;
 	vnl_matrix<double> heatmapMatrixNew;
 	std::vector< int> clusterOrder;
-	std::vector< int> moduleForSelection;
+	std::set< int> moduleForSelection;
 
 	// for spdtestwindow
 	vnl_matrix<double> ModuleCompareCorMatrix;

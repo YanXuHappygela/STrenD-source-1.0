@@ -1,4 +1,5 @@
 #include "TrendHeatmapWindow.h"
+#include <algorithm>   
 
 #define pi 3.1415926
 #define POWER_PARAM 0.2
@@ -2164,7 +2165,17 @@ void TrendHeatmapWindow::addDragLineforSPD(double* worldPosition)
 	this->selectClustersforSPD(worldPosition);
 }
 
-void TrendHeatmapWindow::selectClustersforSPD(double* worldPosition)
+void TrendHeatmapWindow::getThreshold(std::vector<double> &thresVec)
+{
+	thresVec.resize(this->num_samples - 1);
+	for( int i = this->num_samples; i < 2 * this->num_samples - 1; i++)
+	{
+		thresVec[i - this->num_samples] = Processed_Coordinate_Data_Tree1[i][1];
+	}
+	std::sort(thresVec.begin(), thresVec.end());
+}
+
+void TrendHeatmapWindow::selectClustersforSPD(double* worldPosition, bool selection)
 {
 	reselectedClusterSPD.clear();
 
@@ -2177,7 +2188,7 @@ void TrendHeatmapWindow::selectClustersforSPD(double* worldPosition)
 	std::set<long int> selectedClusterSPD;
 	for( long int index = 0; index < 2 * this->num_samples - 1; index++)
 	{
-		if(worldPosition[0] > Processed_Coordinate_Data_Tree1[index][1])
+		if(worldPosition[0] >= Processed_Coordinate_Data_Tree1[index][1])
 		{
 			selectedClusterSPD.insert(index);
 		}
@@ -2236,7 +2247,7 @@ void TrendHeatmapWindow::selectClustersforSPD(double* worldPosition)
 		}
 	}
 	
-	this->reselectClustersforSPD(selectedClusterSPD);
+	this->reselectClustersforSPD(selectedClusterSPD, selection);
 }
 
 void TrendHeatmapWindow::GetSubTreeClusterNum(std::vector<int> &clusterNum)
@@ -2248,7 +2259,7 @@ void TrendHeatmapWindow::GetSubTreeClusterNum(std::vector<int> &clusterNum)
 	}
 }
 
-void TrendHeatmapWindow::reselectClustersforSPD(std::set<long int>& selectedClusterSPD)
+void TrendHeatmapWindow::reselectClustersforSPD(std::set<long int>& selectedClusterSPD, bool selection)
 {
 	std::set<long int>::iterator it;
 	int clusternumber = 0;
@@ -2304,8 +2315,9 @@ void TrendHeatmapWindow::reselectClustersforSPD(std::set<long int>& selectedClus
 		sampleIndex.push_back(sampleIdsVec);
 		clusIndex.push_back(clusIdsVec);
 	}
+
 	this->Selection->SetClusterIndex(clusIndex);
-	this->Selection->SetSampleIndex(sampleIndex);
+	this->Selection->SetSampleIndex(sampleIndex, selection);
 }
 
 vtkSmartPointer<vtkTable> TrendHeatmapWindow::GetTreeTable()

@@ -166,14 +166,17 @@ void ObjectSelection::SelectPoints(std::vector<Point> points)
 	emit MultiChanged();
 }
 
-void ObjectSelection::SetSampleIndex( std::vector< std::vector<long int> > &sampleIndex)
+void ObjectSelection::SetSampleIndex( std::vector< std::vector<long int> > &sampleIndex, bool sel)
 {
 	index.clear();
 	for( int i = 0; i < sampleIndex.size(); i++)
 	{
 		index.push_back(sampleIndex[i]);
 	}
-	emit thresChanged();
+	if( sel)
+	{
+		emit thresChanged();
+	}
 }
 
 void ObjectSelection::GetSampleIndex( std::vector< std::vector<long int> > &sampleIndex)

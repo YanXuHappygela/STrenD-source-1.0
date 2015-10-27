@@ -17,6 +17,7 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkVector.h"
+#include <ctime>
 
 using std::ifstream;
 using std::endl;
@@ -99,20 +100,28 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
 	psdModuleSelectBox = new QLineEdit(this);
 	manualSelButton = new QPushButton(tr("Select"), this);
 
-	QLabel *treeVisLabel = new QLabel(tr("Force-directed tree:"), this); 
+	treeVisLabel = new QLabel(tr("TreeVis:"), this); 
 	font2 = treeVisLabel->font();
 	font2.setBold(true);
 	font2.setPointSize(10);
 	treeVisLabel->setFont(font2);
 	treeVisButton = new QPushButton(tr("Visualize"), this);
+	bshowClusterHeatmap = new QCheckBox(this);
+	nColorLabel = new QLabel(tr("Color index:"), this); 
+    nColorBox = new QSpinBox(this);
+	nColorBox->setValue(0);
+	nColorBox->setMinimum (-1);
+	nColorBox->setMaximum(10000000);
+	nColorBox->setSingleStep(1);
+	nColorBotton = new QPushButton(tr("Color"), this);
 
-
-	QLabel *visualLabel = new QLabel(tr("t-SNE:"), this); 
+	visualLabel = new QLabel(tr("t-SNE:"), this); 
 	font2 = visualLabel->font();
 	font2.setBold(true);
 	font2.setPointSize(10);
 	visualLabel->setFont(font2);
 
+	clusteringButton = new QPushButton(tr("Clustering"), this);
 	autoTrendButton = new QPushButton(tr("Visualize"), this);
 	perplexityBox = new QDoubleSpinBox(this);
 	perplexLabel = new QLabel(tr("Perplexity:"), this); 
@@ -133,8 +142,15 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
 	dimBox->setSingleStep(1);
 
 	heatmapButton = new QPushButton(tr("MST-ordered Heatmap"), this);
+	featureEvaluateButton = new QPushButton(tr("Feature evaluate"), this);
 	//testKButton = new QPushButton(tr("Test K"), this);
 	//testLButton = new QPushButton(tr("Test L"), this);
+
+	nThreshBox = new QSpinBox(this);
+	nThreshBox->setValue(10);
+	nThreshBox->setMinimum (0);
+	nThreshBox->setMaximum(10000000);
+	nThreshBox->setSingleStep(1);
 
 	radioAuto->setChecked(true);
 	radioManual->setChecked(false);
@@ -143,6 +159,7 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
 	manualSelButton->setEnabled(false);
 	autoTrendButton->setEnabled(false);
 	heatmapButton->setEnabled(false);
+	featureEvaluateButton->setEnabled(false);
 	
     QGridLayout *mainLayout = new QGridLayout(this);
 
@@ -152,7 +169,7 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
         mainLayout->setColumnStretch(col, 1);
     }
 
-     for ( int row = 0; row <= 24; row++)
+     for ( int row = 0; row <= 25; row++)
     {
         mainLayout->setRowMinimumHeight(row,20);
         mainLayout->setRowStretch(row, 1);
@@ -205,26 +222,32 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
 	line4->setFrameShape(QFrame::HLine);
 	line4->setFrameShadow(QFrame::Sunken);
 	mainLayout->addWidget(line4, 17, 0, 1, 3);
-	mainLayout->addWidget(treeVisLabel, 18, 0, 1, 2);
+	mainLayout->addWidget( treeVisLabel, 18, 0);
+	mainLayout->addWidget( bshowClusterHeatmap, 18, 1);
 	mainLayout->addWidget( treeVisButton, 18, 2);
-
-	mainLayout->addWidget(visualLabel, 19, 0, 1, 2);
-	mainLayout->addWidget( perplexLabel, 20, 0);
-	mainLayout->addWidget( perplexityBox, 20, 1);
-	mainLayout->addWidget( thetaLabel, 21, 0);
-	mainLayout->addWidget( thetaBox, 21, 1);
-	mainLayout->addWidget( dimLabel, 22, 0);
-	mainLayout->addWidget( dimBox, 22, 1);
-	mainLayout->addWidget( autoTrendButton, 22, 2);
+	mainLayout->addWidget( nColorLabel, 19, 0);
+	mainLayout->addWidget( nColorBox, 19, 1);
+	mainLayout->addWidget( nColorBotton, 19, 2);
+	mainLayout->addWidget( visualLabel, 20, 0, 1, 2);
+	mainLayout->addWidget( clusteringButton, 20, 2);
+	mainLayout->addWidget( perplexLabel, 21, 0);
+	mainLayout->addWidget( perplexityBox, 21, 1);
+	mainLayout->addWidget( thetaLabel, 22, 0);
+	mainLayout->addWidget( thetaBox, 22, 1);
+	mainLayout->addWidget( dimLabel, 23, 0);
+	mainLayout->addWidget( dimBox, 23, 1);
+	mainLayout->addWidget( autoTrendButton, 23, 2);
 
 	QFrame* line5 = new QFrame();
 	line5->setFrameShape(QFrame::HLine);
 	line5->setFrameShadow(QFrame::Sunken);
-	mainLayout->addWidget(line5, 23, 0, 1, 3);
+	mainLayout->addWidget(line5, 24, 0, 1, 3);
 
 	//mainLayout->addWidget(testKButton, 23, 0);
 	//mainLayout->addWidget(testLButton, 23, 1);
-	mainLayout->addWidget(heatmapButton, 24, 2);
+	mainLayout->addWidget(featureEvaluateButton, 25, 1);
+	mainLayout->addWidget(heatmapButton, 25, 2);
+	mainLayout->addWidget(nThreshBox, 25, 0);
 
 	mainLayout->setSizeConstraint( QLayout::SetFixedSize);
     setLayout(mainLayout);
@@ -236,7 +259,10 @@ STrenDkNNGModuleMatch::STrenDkNNGModuleMatch(QWidget *parent) :
 	connect( autoSelButton, SIGNAL(clicked()), this, SLOT(autoSelection()));
 	connect( autoTrendButton, SIGNAL(clicked()), this, SLOT(autoClick()));
 	connect( heatmapButton, SIGNAL(clicked()), this, SLOT(showTrendHeatmap()));
+	connect( featureEvaluateButton, SIGNAL(clicked()), this, SLOT(evaluateFeatures()));
 	connect( treeVisButton, SIGNAL(clicked()), this, SLOT(showMSTGraph()));
+	connect( nColorBotton, SIGNAL(clicked()), this, SLOT(colorTreeNode()));
+	connect( clusteringButton, SIGNAL(clicked()), this, SLOT(clusteringBySingleLinkage()));
 	//connect( testKButton, SIGNAL(clicked()), this, SLOT(TestKTrend()));
 	//connect( testLButton, SIGNAL(clicked()), this, SLOT(TestLTrend()));
 
@@ -261,6 +287,17 @@ void STrenDkNNGModuleMatch::setModels(vtkSmartPointer<vtkTable> table, ObjectSel
 	else
 	{
 		data = table;
+		vtkDoubleArray *color = vtkDoubleArray::SafeDownCast(data->GetColumnByName("color"));
+		if( color != NULL)
+		{
+			std::cout<< "Set Color"<<std::endl;
+			colorVecOri.clear();
+			for( int i = 0; i < color->GetNumberOfTuples(); i++)
+			{
+				colorVecOri.push_back(color->GetValue(i));
+			}
+		}
+		data->RemoveColumnByName("color");
 		STrenDModel->ParseTraceFile( data);
 		this->featureNum->setText( QString::number(this->STrenDModel->GetFeatureNum()));
 		this->sampleNum->setText( QString::number(this->STrenDModel->GetSampleNum()));
@@ -370,7 +407,7 @@ void STrenDkNNGModuleMatch::clusterFunction()
 	try
 	{
 		this->STrenDModel->ClusterAgglomerate( atof(clusterCor.c_str()), 2);
-		//showHeatmapAfterFeatureClustering();
+		//this->STrenDModel->StrictClusterFeature(atof(clusterCor.c_str()));
 	}
 	catch(...)
 	{
@@ -466,6 +503,7 @@ void STrenDkNNGModuleMatch::autoSelection()
 	std::cout<< "Current Index: "<< maxIndex<<std::endl;
 	listbox->setCurrentRow(maxIndex);
 	autoTrendButton->setEnabled(true);
+	featureEvaluateButton->setEnabled(true);
 }
 
 void STrenDkNNGModuleMatch::showNSMForManualSelection()
@@ -495,6 +533,7 @@ void STrenDkNNGModuleMatch::showNSMForManualSelection()
 
 	delete clus1;
 	delete clus2;
+
 }
 
 void STrenDkNNGModuleMatch::autoClick()
@@ -505,19 +544,14 @@ void STrenDkNNGModuleMatch::autoClick()
 
 void STrenDkNNGModuleMatch::showMSTGraph()
 {
+	heatmapButton->setEnabled(true);
 	UpdateConnectedNum();  // update connected component
-	std::cout<< connectedNum<<std::endl;
+	std::cout<< "Connected Component: "<<connectedNum<<std::endl;
 
 	if(connectedNum <= 1e-9)
 	{
 		return;
 	}
-
-	//if( this->originalHeatmap)
-	//{
-	//	delete this->originalHeatmap;
-	//	this->originalHeatmap = NULL;
-	//}
 
 	std::string selectModulesID = "";
 
@@ -532,23 +566,31 @@ void STrenDkNNGModuleMatch::showMSTGraph()
 
 	std::vector< unsigned int> selModuleID;
 	std::vector< int> clusterSize;
+	std::vector< double> moduleWeights;  // for all modules
+	std::vector< double> featureWeights;
+
 	selFeatureID.clear();
 	selOrder.clear();
 	unselOrder.clear();
 
 	split( selectModulesID, ',', selModuleID);
-	std::cout<< "Selected Module Size:" << selModuleID.size() <<std::endl;
 	STrenDModel->GetFeatureIdbyModId(selModuleID, selFeatureID);
-	std::cout<< "Selected Features:" << selFeatureID.size() <<std::endl;
-	STrenDModel->SaveSelectedFeatureNames("AutoSelFeatures.txt", selFeatureID);
+	std::cout<< "feature selected:"<<selFeatureID.size()<<std::endl;
 
-	//for( size_t i = 0; i < selModuleID.size(); i++)
-	//{
-	//	std::cout<< selModuleID[i]<< "\t";
-	//}
-	//std::cout<<std::endl;
+	vtkSmartPointer<vtkTable> tableAfterFeatureSelection = STrenDModel->GetOriginalTableAfterFeatureSelection(selFeatureID);
 
-	// For validation:
+	std::stringstream ss;
+	ss << this->STrenDModel->GetFeatureNum();
+	std::string featureNum;
+	ss >> featureNum;
+	std::stringstream ss2;
+	ss2 << this->STrenDModel->GetSampleNum();
+	std::string sampleNum;
+	ss2 >> sampleNum;
+
+	std::string name = "dataSelected_"+ featureNum + "_" + sampleNum + ".txt";
+	ftk::SaveTable(name, tableAfterFeatureSelection);
+	
 	vnl_vector<int> validationVec;
 	STrenDModel->GetValidationVec(validationVec);
 	if( validationVec.max_value() > 0)
@@ -558,73 +600,165 @@ void STrenDkNNGModuleMatch::showMSTGraph()
 		std::vector<int> clusterNum(1);
 		clusterNum[0] = clusAverageMat.rows();
 		vtkSmartPointer<vtkTable> treeTable = STrenDModel->GenerateMST( clusAverageMat, selFeatureID, clusterNum);
-
+		
+		std::vector<unsigned int> selFeatureID2;
+		for(unsigned int num = 0; num < this->STrenDModel->GetFeatureNum(); num++){
+			selFeatureID2.push_back(num);
+		}
+		vtkSmartPointer<vtkTable> treeTableFull = STrenDModel->GenerateMST( clusAverageMat, selFeatureID2, clusterNum);
+		
 		std::vector<std::string> headers;
 		STrenDModel->GetTableHeaders( headers);
-
 		vnl_matrix<double> betweenDis;
+		vnl_matrix<double> betweenDisFull;
 		vnl_vector<double> accVec;
 		vnl_vector<double> aggDegree;
 
 		GraphWindow::GetTreeNodeBetweenDistance(treeTable, headers[0], headers[1], headers[2], betweenDis);
+		GraphWindow::GetTreeNodeBetweenDistance(treeTableFull, headers[0], headers[1], headers[2], betweenDisFull);
+
+		std::stringstream ss;
+		ss << this->STrenDModel->GetFeatureNum();
+		std::string featureNum;
+		ss >> featureNum;
+
+		std::stringstream ss2;
+		ss2 << this->STrenDModel->GetSampleNum();
+		std::string sampleNum;
+		ss2 >> sampleNum;
+
+		std::string name = "accuracy_"+ featureNum + "_" + sampleNum + ".txt";
+		ofstream ofs(name.c_str());
 		double aggDegreeValue = 0;
-		double averConnectionAccuracy = STrenDModel->GetConnectionAccuracy(treeTable, betweenDis, accVec, aggDegree, aggDegreeValue, 1, 0);
-		std::cout<< "ConnectionAccuracy: "<< averConnectionAccuracy<<std::endl;
-		std::cout<< "ClusteringAccuracy: "<< aggDegreeValue<<std::endl;
+		for( int j = 1; j <= validationVec.max_value(); j++)
+		{
+			double averConnectionAccuracy = STrenDModel->GetConnectionAccuracy(treeTable, betweenDis, accVec, aggDegree, aggDegreeValue, j, 0);
+			double averConnectionAccuracyFull = STrenDModel->GetConnectionAccuracy(treeTableFull, betweenDisFull, accVec, aggDegree, aggDegreeValue, j, 0);
+			ofs << j << "\t"<< averConnectionAccuracy<<"\t"<< averConnectionAccuracyFull<<endl;
+		}
+		ofs.close();
 	}
 	// end valdiation
-	
-	vtkSmartPointer<vtkTable> tableAfterFeatureSelection = STrenDModel->GetNormalizedTableAfterFeatureSelection(selFeatureID);
-	ftk::SaveTable("data_selected_vis.txt",tableAfterFeatureSelection);
 
-	heatmapButton->setEnabled(true);
-
-	// visualize with trees
-	if(this->graph)
+	if (bshowClusterHeatmap ->isChecked()) 
 	{
-		delete this->graph;
+		// with cluster heatmap
+		heatmapButton->setEnabled(true);
+		GetFeatureOrder( selFeatureID, selOrder, unselOrder);
+
+		vtkSmartPointer<vtkTable> tableAfterCellCluster = STrenDModel->GetDataTableAfterCellCluster();
+		
+		std::cout<< "Build cluster heatmap" <<std::endl;
+		std::map< int, int> indexMap;
+		STrenDModel->GetClusterMapping(indexMap);
+
+		//vnl_matrix<double> subTreeDistance;
+		//STrenDModel->GetComponentMinDistance(selFeatureID, connectedComponent, connectedNum, subTreeDistance);
+
+		if( this->autoHeatmapWin)
+		{
+			delete this->autoHeatmapWin;
+		}
+		this->autoHeatmapWin = new TrendHeatmapWindow(tr("Auto Selection Heatmap"), this);
+		connect(selection, SIGNAL( thresChanged()), this, SLOT( regenerateTrendTree()));
+		this->autoHeatmapWin->setModelsforSPD( tableAfterCellCluster, selection, selOrder, unselOrder, &indexMap); //,\&connectedComponent, connectedNum, &subTreeDistance);
+		this->autoHeatmapWin->showGraphforSPD( selOrder.size(), unselOrder.size());
 	}
-	this->graph = new GraphWindow( this);
-
-	vnl_matrix<double> clusAverageMat;
-	STrenDModel->GetDataMatrix(clusAverageMat);
-	std::vector<int> clusterNum(1);
-	clusterNum[0] = clusAverageMat.rows();
-	std::cout<< clusterNum[0]<<std::endl;
-
-	//std::vector<double> colorVec2(68);
-	//for(size_t i = 0; i < 8; i++)
-	//{
-	//	colorVec2[i] = 0;
-	//}
-	//for(size_t i = 8; i < 26; i++)
-	//{
-	//	colorVec2[i] = 0.3;
-	//}
-	//for(size_t i = 26; i < 52; i++)
-	//{
-	//	colorVec2[i] = 0.6;
-	//}
-	//for(size_t i = 52; i < 68; i++)
-	//{
-	//	colorVec2[i] = 0.9;
-	//}
-
-	vtkSmartPointer<vtkTable> treeTable = STrenDModel->GenerateMST( clusAverageMat, selFeatureID, clusterNum);
-	std::cout<< treeTable->GetNumberOfRows()<<"\t"<<treeTable->GetNumberOfColumns()<<std::endl;
-
-	std::vector<std::string> headers;
-	std::vector<long int> TreeOrder;
-	STrenDModel->GetTableHeaders( headers);
-	this->graph->setModels(data, selection);
-	this->graph->SetTreeTable( treeTable, headers[0], headers[1], headers[2]/*, &colorVec2*/);
-	try
+	else
 	{
-		this->graph->ShowGraphWindow();
+		// visualize with trees
+		if(this->graph)
+		{
+			delete this->graph;
+		}
+		this->graph = new GraphWindow( this);
+
+		vnl_matrix<double> clusAverageMat;
+		STrenDModel->GetDataMatrix(clusAverageMat);
+		std::vector<int> clusterNum(1);
+		clusterNum[0] = clusAverageMat.rows();
+		std::cout<< clusterNum[0]<<std::endl;
+
+		vtkSmartPointer<vtkTable> treeTable = STrenDModel->GenerateMST( clusAverageMat, selFeatureID, clusterNum);
+		std::cout<< "MST: "<<treeTable->GetNumberOfRows()<<"\t"<<treeTable->GetNumberOfColumns()<<std::endl;
+
+		std::stringstream ss;
+		ss << this->STrenDModel->GetFeatureNum();
+		std::string featureNum;
+		ss >> featureNum;
+
+		std::stringstream ss2;
+		ss2 << this->STrenDModel->GetSampleNum();
+		std::string sampleNum;
+		ss2 >> sampleNum;
+
+		std::string name = "MSTree_"+ featureNum + "_" + sampleNum + ".txt";
+		ftk::SaveTable(name,treeTable);
+
+		std::vector<std::string> headers;
+		STrenDModel->GetTableHeaders( headers);
+		this->graph->setModels(data, selection);
+
+		std::clock_t start = std::clock();
+		this->graph->SetTreeTable( treeTable, headers[0], headers[1], headers[2]); //, &colorVec);
+		double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+		std::cout<<"Total time for graph layout: "<< duration / 60.0 <<'\n';
+		try
+		{
+			this->graph->ShowGraphWindow();
+		}
+		catch(...)
+		{
+			std::cout<< "Graph window error!"<<endl;
+		}
+
+		////std::vector<std::list<int>> longestPath;
+		////this->graph->GetLongestPathListByLevel(treeTable, headers[0], headers[1], headers[2], 1, longestPath);
+
+		//std::vector<std::list<int>> longestCluster;
+		//this->graph->GetLongestPathListCluster(treeTable, headers[0], headers[1], headers[2], longestCluster);
+		//std::cout<< "longestCluster list total:"<<longestCluster[0].size()<<"\t"<<longestCluster.size() - 1<<std::endl;
+
+		////vtkSmartPointer<vtkTable> dataLongestClusterTable = STrenDModel->GetDataTableByLongestCluster(longestCluster);
+		////ftk::SaveTable("dataTableBylongestCluster.txt",dataLongestClusterTable);
+
+		//vnl_matrix<double> treeLevelMat;
+		//dataLevelTable = STrenDModel->GetDataTableByTreeLevel(longestCluster);
+		//ftk::SaveTable("dataTableByLevel.txt",dataLevelTable);
+		////vtkSmartPointer<vtkTable> orderedTable = STrenDModel->GetOrderedTableByBackBone(tableAfterFeatureSelection, longestPath[0]);
+		////ftk::SaveTable("orderedBackBoneDataTable.txt",orderedTable);
+
+		//std::cout<< "number of data points to visualize: "<<dataLevelTable->GetNumberOfRows()<<std::endl;
+		//STrenDModel->ConvertTableToMatrixIdRemoved(dataLevelTable, treeLevelMat);
+		//clusterNum[0] = treeLevelMat.rows();
+		//vtkSmartPointer<vtkTable> treeTableByLevel = STrenDModel->GenerateMST( treeLevelMat, selFeatureID, clusterNum);
+		//this->graph->setModels(dataLevelTable, selection);
 	}
-	catch(...)
+}
+
+void STrenDkNNGModuleMatch::colorTreeNode()
+{
+	std::string colorIndex = nColorBox->text().toStdString();
+	int index = atoi(colorIndex.c_str());
+	if( index >= 0 && index < this->STrenDModel->GetFeatureNum())
 	{
-		std::cout<< "Graph window error!"<<endl;
+		ReColorTrendTree(index);
+	}
+	else if( index == -1)
+	{
+		vnl_vector<int> validationVec;
+		STrenDModel->GetValidationVec(validationVec);
+		vnl_vector<double> vec;
+		vec.set_size(validationVec.size());
+		for( unsigned int i = 0; i < validationVec.size(); i++)
+		{
+			vec[i] = validationVec[i];
+		}
+		this->graph->ColorTreeAccordingToFeatures(vec, "Label");
+	}
+	else
+	{
+		std::cout<< "Out of color index range!!!"<<std::endl;
 	}
 }
 
@@ -666,45 +800,35 @@ void STrenDkNNGModuleMatch::viewTrendAuto(bool bAuto)
 	std::cout<< "Selected Module Size:" << selModuleID.size() <<std::endl;
 	STrenDModel->GetFeatureIdbyModId(selModuleID, selFeatureID);
 	std::cout<< "Selected Features:" << selFeatureID.size() <<std::endl;
-	STrenDModel->SaveSelectedFeatureNames("AutoSelFeatures.txt", selFeatureID);
-
-	//for( size_t i = 0; i < selModuleID.size(); i++)
-	//{
-	//	std::cout<< selModuleID[i]<< "\t";
-	//}
-	//std::cout<<std::endl;
 
 	// For validation:
-	vnl_vector<int> validationVec;
-	STrenDModel->GetValidationVec(validationVec);
-	if( validationVec.max_value() > 0)
-	{
-		vnl_matrix<double> clusAverageMat;
-		STrenDModel->GetDataMatrix(clusAverageMat);
-		std::vector<int> clusterNum(1);
-		clusterNum[0] = clusAverageMat.rows();
-		vtkSmartPointer<vtkTable> treeTable = STrenDModel->GenerateMST( clusAverageMat, selFeatureID, clusterNum);
+	//vnl_vector<int> validationVec;
+	//STrenDModel->GetValidationVec(validationVec);
+	//if( validationVec.max_value() > 0)
+	//{
+	//	vnl_matrix<double> clusAverageMat;
+	//	STrenDModel->GetDataMatrix(clusAverageMat);
+	//	std::vector<int> clusterNum(1);
+	//	clusterNum[0] = clusAverageMat.rows();
+	//	vtkSmartPointer<vtkTable> treeTable = STrenDModel->GenerateMST( clusAverageMat, selFeatureID, clusterNum);
 
-		std::vector<std::string> headers;
-		STrenDModel->GetTableHeaders( headers);
+	//	std::vector<std::string> headers;
+	//	STrenDModel->GetTableHeaders( headers);
 
-		vnl_matrix<double> betweenDis;
-		vnl_vector<double> accVec;
-		vnl_vector<double> aggDegree;
+	//	vnl_matrix<double> betweenDis;
+	//	vnl_vector<double> accVec;
+	//	vnl_vector<double> aggDegree;
 
-		GraphWindow::GetTreeNodeBetweenDistance(treeTable, headers[0], headers[1], headers[2], betweenDis);
-		double aggDegreeValue = 0;
-		double averConnectionAccuracy = STrenDModel->GetConnectionAccuracy(treeTable, betweenDis, accVec, aggDegree, aggDegreeValue, 1, 0);
-		std::cout<< "ConnectionAccuracy: "<< averConnectionAccuracy<<std::endl;
-		std::cout<< "ClusteringAccuracy: "<< aggDegreeValue<<std::endl;
-	}
+	//	GraphWindow::GetTreeNodeBetweenDistance(treeTable, headers[0], headers[1], headers[2], betweenDis);
+	//	double aggDegreeValue = 0;
+	//	double averConnectionAccuracy = STrenDModel->GetConnectionAccuracy(treeTable, betweenDis, accVec, aggDegree, aggDegreeValue, 1, 0);
+	//	std::cout<< "ConnectionAccuracy: "<< averConnectionAccuracy<<std::endl;
+	//	std::cout<< "ClusteringAccuracy: "<< aggDegreeValue<<std::endl;
+	//}
 	// end valdiation
-	
-	vtkSmartPointer<vtkTable> tableAfterFeatureSelection = STrenDModel->GetNormalizedTableAfterFeatureSelection(selFeatureID);
-	ftk::SaveTable("data_selected_vis.txt",tableAfterFeatureSelection);
 
+	vtkSmartPointer<vtkTable> tableAfterFeatureSelection = STrenDModel->GetOriginalTableAfterFeatureSelection(selFeatureID);
 	heatmapButton->setEnabled(true);
-
 	int N = tableAfterFeatureSelection->GetNumberOfRows();
 	int D = tableAfterFeatureSelection->GetNumberOfColumns() - 1; // remove the id column
 	double* X = (double*)calloc(N * D, sizeof(double));
@@ -716,7 +840,19 @@ void STrenDkNNGModuleMatch::viewTrendAuto(bool bAuto)
 	TSNE::run(X, N, D, Y, no_dims, perplexityBox->value(), thetaBox->value());
 	tableAfterDimReduct = vtkSmartPointer<vtkTable>::New();
 	STrenDModel->doubleArrayToTable(tableAfterDimReduct, Y, N, no_dims);
-	ftk::SaveTable("vis_coordinates.txt",tableAfterDimReduct);
+
+	std::stringstream ss;
+	ss << this->STrenDModel->GetFeatureNum();
+	std::string featureNum;
+	ss >> featureNum;
+
+	std::stringstream ss2;
+	ss2 << this->STrenDModel->GetSampleNum();
+	std::string sampleNum;
+	ss2 >> sampleNum;
+
+	std::string name = "TSNE_"+ featureNum + "_" + sampleNum + ".txt";
+	ftk::SaveTable(name,tableAfterDimReduct);
 
 	free(X);
 	free(Y);
@@ -790,6 +926,7 @@ void STrenDkNNGModuleMatch::viewTrendAuto(bool bAuto)
 		plot->setModels(tableAfterDimReduct, selection);
 		plot->show();
 	}
+
 	
 	/*GetFeatureOrder( selFeatureID, selOrder, unselOrder);
 
@@ -924,27 +1061,6 @@ void STrenDkNNGModuleMatch::GetFeatureOrder(std::vector< unsigned int> &selID, s
 		}
 	}
 
-	//ofstream ofs("FeatureOrder.txt");
-	//ofs<< "feature optimal order:"<<endl;
-	//for( int i = 0; i < cc2->num_samples; i++)
-	//{
-	//	ofs<< cc2->optimalleaforder[i]<<"\t";
-	//}
-	//ofs<<endl;
-	//ofs<< "Selected features optimal order:"<<endl;
-	//for( int i = 0; i < selIdOrder.size(); i++)
-	//{
-	//	ofs<< selIdOrder[i]<<"\t";
-	//}
-	//ofs<<endl;
-	//ofs<< "UnSelected features optimal order:"<<endl;
-	//for( int i = 0; i < unselIdOrder.size(); i++)
-	//{
-	//	ofs<< unselIdOrder[i]<<"\t";
-	//}
-	//ofs<<endl;
-	//ofs.close();
-
 	for( int i = 0; i < FeatureTreeData.size(); i++)
 	{
 		delete ftreedata[i];
@@ -978,13 +1094,13 @@ void STrenDkNNGModuleMatch::regenerateTrendTree()
         //std::vector< std::vector< long int> > clusIndex;
         //selection->GetClusterIndex( clusIndex);
 
-		double homogeneity = STrenDModel->GetANOVA(sampleIndex, selFeatureID);
-		std::cout<< "Homogeneity evaluation: "<< homogeneity<<std::endl;
+		//double homogeneity = STrenDModel->GetANOVA(sampleIndex, selFeatureID);
+		//std::cout<< "Homogeneity evaluation: "<< homogeneity<<std::endl;
 
 		vnl_matrix<double> clusAverageMat;
-		std::vector< double> colorVec;
+		vnl_vector<double> meanVec;
 		std::vector< double> percentVec;
-        STrenDModel->GetSingleLinkageClusterAverage(sampleIndex, clusAverageMat);
+        STrenDModel->GetSingleLinkageClusterAverage(sampleIndex, clusAverageMat, meanVec);
 
 		std::vector<int> clusterNum(1);
 		clusterNum[0] = clusAverageMat.rows();
@@ -1019,13 +1135,85 @@ void STrenDkNNGModuleMatch::ReColorTrendTree(int nfeature)
 {
 	if( this->graph)
 	{
-		std::vector< std::vector< long int> > clusIndex;
+		std::cout<< "color tree using feature "<<nfeature<<std::endl;
 		vnl_vector<double> featureValue;
 		std::string featureName;
-		selection->GetClusterIndex( clusIndex);
-		STrenDModel->GetClusterFeatureValue(clusIndex, nfeature, featureValue, featureName);
+
+		selection->clear();
+		std::vector< std::vector< long int> > sampleIndex;
+		selection->GetSampleIndex( sampleIndex);
+		std::cout<< "graph nodes 0: "<<sampleIndex.size()<<std::endl;
+		if(sampleIndex.size() >= 1)
+		{
+			vnl_matrix<double> clusAverageMat;
+			vnl_vector<double> meanVec;
+			STrenDModel->GetSingleLinkageClusterAverage(sampleIndex, clusAverageMat, meanVec);
+			std::cout<< "graph nodes 1: "<<clusAverageMat.rows()<<"\t"<<clusAverageMat.cols()<<std::endl;
+			featureValue = clusAverageMat.get_column(nfeature);
+			char* name = this->graph->getModels()->GetColumn(nfeature + 1)->GetName();
+			featureName = "Colored by " + std::string(name);
+		}
+		else
+		{
+			STrenDModel->GetFeatureValue(nfeature, featureValue, featureName);
+			std::cout<< "graph nodes 2: "<<featureValue.size()<<std::endl;
+			featureName = "Colored by " + featureName;
+		}
+
 		this->graph->ColorTreeAccordingToFeatures(featureValue, featureName.c_str());
 	}
+}
+
+void STrenDkNNGModuleMatch::clusteringBySingleLinkage()
+{
+	if(!this->autoHeatmapWin)
+	{
+		return;
+	}
+
+	std::stringstream ss;
+	ss << this->STrenDModel->GetFeatureNum();
+	std::string featureNum;
+	ss >> featureNum;
+
+	std::stringstream ss2;
+	ss2 << this->STrenDModel->GetSampleNum();
+	std::string sampleNum;
+	ss2 >> sampleNum;
+
+	std::string name = "CHIndex_"+ featureNum + "_" + sampleNum + ".txt";
+	ofstream ofs(name.c_str());
+	ofs<< "cluster number"<<"\t"<<"CH index"<<"\t"<<"Within-class variance"<<"\t"<<"Between-class variance"<<endl;
+	std::vector<double> thresVec;
+	this->autoHeatmapWin->getThreshold(thresVec);
+	
+	vnl_vector<double> CHVec(thresVec.size());
+	for( int i = 0; i < thresVec.size() / 2; i++)
+	{
+		std::vector< std::vector< long int> > sampleIndex;
+
+		double pos[2];
+		pos[0] = thresVec[i];
+		pos[1] = 0;
+
+		this->autoHeatmapWin->selectClustersforSPD(pos, false);
+		selection->GetSampleIndex(sampleIndex);
+
+		vnl_matrix<double> clusAverageMat;
+		vnl_vector<double> meanVec;
+		double wVar, bVar;
+		STrenDModel->GetSingleLinkageClusterAverage(sampleIndex, clusAverageMat, meanVec);
+		CHVec[i] = STrenDModel->GetSingleLinkageCHIndex(sampleIndex, clusAverageMat, meanVec, wVar, bVar);
+		ofs<< i + 2<< "\t"<<CHVec[i]<<"\t"<<wVar<<"\t"<<bVar<<endl;
+	}
+	ofs.close();
+
+	unsigned int maxPos = CHVec.arg_max();
+	double pos[2];
+	pos[0] = (thresVec[maxPos] + thresVec[maxPos + 1]) / 2;
+	pos[1] = 0;
+	this->autoHeatmapWin->addDragLineforSPD(pos);
+	this->autoHeatmapWin->selectClustersforSPD(pos, true);
 }
 
 void STrenDkNNGModuleMatch::updateSelMod()   
@@ -1064,6 +1252,8 @@ void STrenDkNNGModuleMatch::updateSelMod()
 		}
 		psdModuleSelectBox->setText(str);
 	}
+	featureEvaluateButton->setEnabled(true);
+	autoTrendButton->setEnabled(true);
 }
 
 void STrenDkNNGModuleMatch::UpdateConnectedNum()
@@ -1081,6 +1271,73 @@ void STrenDkNNGModuleMatch::GetTrendTreeOrder(std::vector<long int> &order)
 	this->graph->GetTrendTreeOrder(order);
 }
 
+void STrenDkNNGModuleMatch::evaluateFeatures()
+{
+	std::string selectModulesID = "";
+
+	if( radioAuto->isChecked())
+	{
+		selectModulesID = listbox->currentItem()->text().toStdString();
+		
+	}
+	else
+	{
+		selectModulesID = psdModuleSelectBox->text().toStdString();
+	}
+
+	std::vector< unsigned int> selModuleID;
+	selFeatureID.clear();
+
+	split( selectModulesID, ',', selModuleID);
+	STrenDModel->GetFeatureIdbyModId(selModuleID, selFeatureID);
+
+	std::string kNeighbor = this->kNearestNeighborBox->text().toStdString();
+	std::string nBin = this->nBinBox->text().toStdString();
+	std::vector< double> moduleWeights;  // for all modules
+	std::vector< double> featureWeights;  // for all features
+	std::vector<unsigned int> updatedModuleIDs = selModuleID;
+
+	int itersect = 100;
+	int iterCount = 1;
+	while (itersect >= 1 && iterCount <= 10){
+		selModuleID = updatedModuleIDs;
+		STrenDModel->RefineFeatures(selModuleID, updatedModuleIDs, atoi(kNeighbor.c_str()), atoi(nBin.c_str()), nThreshBox->value());
+		std::vector<int> v(selModuleID.size());
+		std::vector<int>::iterator it;
+		std::sort(selModuleID.begin(),selModuleID.end());
+		std::sort(updatedModuleIDs.begin(),updatedModuleIDs.end());
+		it = std::set_difference(selModuleID.begin(), selModuleID.end(), updatedModuleIDs.begin(), updatedModuleIDs.end(), v.begin());
+		v.resize(it-v.begin());
+		itersect = v.size();
+		std::cout<< "Iterating "<<iterCount<<", itersection of "<<itersect<<"\t"<<updatedModuleIDs.size()<<std::endl;
+		++iterCount;
+	}
+
+	QString str;
+	for(unsigned int i = 0; i < updatedModuleIDs.size(); i++)
+	{
+		str += QString::number(updatedModuleIDs[i])+",";
+	}
+	psdModuleSelectBox->setText(str);
+
+	STrenDModel->GetModuleWeightsByIndividualKNNMatching(updatedModuleIDs, moduleWeights, atoi(kNeighbor.c_str()), atoi(nBin.c_str()));
+	STrenDModel->GetFeatureWeights(updatedModuleIDs, featureWeights, atoi(kNeighbor.c_str()), atoi(nBin.c_str()));
+		
+	std::stringstream ss;
+	ss << this->STrenDModel->GetFeatureNum();
+	std::string featureNum;
+	ss >> featureNum;
+
+	std::stringstream ss2;
+	ss2 << this->STrenDModel->GetSampleNum();
+	std::string sampleNum;
+	ss2 >> sampleNum;
+
+	std::string name = "featureWeight_"+ featureNum + "_" + sampleNum + ".txt";
+
+	STrenDModel->SaveSelectedFeatureNames(name, updatedModuleIDs, moduleWeights, featureWeights);
+}
+
 void STrenDkNNGModuleMatch::showTrendHeatmap()
 {
 	//ofstream ofs("SPDHeatmapOptimalOrder.txt");
@@ -1089,7 +1346,7 @@ void STrenDkNNGModuleMatch::showTrendHeatmap()
 		delete this->progressionHeatmap;
 	}
 	this->progressionHeatmap = new TrendHeatmapWindow(tr("MST-ordered Heatmap"),this);
-	
+
 	std::vector<long int> TreeOrder;
 	this->graph->GetTrendTreeOrder(TreeOrder);   // order of the cluster 
 	if( TreeOrder.size() <=0)

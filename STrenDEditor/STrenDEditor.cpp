@@ -139,6 +139,10 @@ void STrenDEditor::createMenus()
 	//connect((this->selection), SIGNAL(selectionChanged()), this, SLOT(updateStatistics()));
 	editMenu->addAction(updateStatisticsAction);
 
+	addLabelAction = new QAction(tr("Add Label"), this);
+	connect(addLabelAction, SIGNAL(triggered()), this, SLOT(AddLabel()));
+	editMenu->addAction(addLabelAction);
+
 	//addBlankRowAction = new QAction(tr("Add Blank Row"), this);
 	//addBlankRowAction->setStatusTip(tr("Add blank row to bottom of table"));
 	//connect(addBlankRowAction, SIGNAL(triggered()), this, SLOT(addBlankRow()));
@@ -180,8 +184,8 @@ void STrenDEditor::loadRotateFile()
 	table->setModels(data,selection,selection2);//////////////////////////////////////////////////////////////////////////
 	table->show();
 
-	//plot->setModels(data,selection);
-	//plot->show();
+	plot->setModels(data,selection);
+	plot->show();
 	/*this->histo->setModels(data, selection);
 	this->histo->show();*/
 	//std::cout << "I reached here inside the sample editor"<<std::endl;
@@ -209,6 +213,13 @@ void STrenDEditor::loadFile()
 	ReadFiles(headername.toStdString(), dataname.toStdString());*/
 	this->data = ftk::LoadTable(headername.toStdString());
 	std::cout<< "Read table:"<<data->GetNumberOfRows()<<"\t"<< data->GetNumberOfColumns()<<endl;
+	
+	for(int i=0; i<data->GetNumberOfRows(); ++i)
+	{
+		long int val = data->GetValue(i,0).ToLong();
+		indMapFromVertexToClus.insert(std::pair<long int, long int>(val, i));
+	}
+	
 	table->setModels(data,selection,selection2);//////////////////////////////////////////////////////////////////////////
 	table->show();
 
@@ -226,6 +237,19 @@ void STrenDEditor::loadFile()
 
 }
 
+std::set<long int> STrenDEditor::TransformSelectedIDsToContinuous(std::set<long int> &IDs)
+{
+	std::set<long int> rtn;
+	for( std::set<long int>::iterator iter = IDs.begin(); iter != IDs.end(); iter++)
+	{
+		if( indMapFromVertexToClus.find(*iter) != indMapFromVertexToClus.end())
+		{
+			long int index = indMapFromVertexToClus.find(*iter)->second;
+			rtn.insert(index);
+		}
+	}
+	return rtn;
+}
 
 void STrenDEditor::ReadFiles(std::string hname, std::string dname)
 {
@@ -443,20 +467,18 @@ void STrenDEditor::STrenDAnalysisModel()
 
 void STrenDEditor::AddLabel()
 {
-	std::cout<< "AddLabel."<<std::endl;
 	std::set<long int> IDs = selection->getSelections();  // be cautious here
-	std::cout<< IDs.size()<<std::endl;
-
 	if( IDs.size() <= 0)
 	{
 		return;
 	}
+	std::cout<< "AddLabel: "<<IDs.size()<<std::endl;
 
-	if(this->data->GetColumnByName("prediction") == NULL)
+	if(this->data->GetColumnByName("Label") == NULL)
 	{
 		std::cout<< "Adding label."<<std::endl;
 		vtkSmartPointer<vtkDoubleArray> column = vtkSmartPointer<vtkDoubleArray>::New();
-		column->SetName( "prediction");
+		column->SetName( "Label");
 		for(vtkIdType id = 0; id < this->data->GetNumberOfRows(); id++)
 		{
 			column->InsertNextValue(0);
@@ -470,15 +492,20 @@ void STrenDEditor::AddLabel()
 	if(ok1)
 	{
 		std::cout<< "Set label."<<std::endl;
-		std::set<long int>::iterator iter = IDs.begin();
+		std::set<long int> transIDs = TransformSelectedIDsToContinuous(IDs);
+		std::set<long int>::iterator iter = transIDs.begin();
 		vtkIdType coln = this->data->GetNumberOfColumns();
-		while( iter != IDs.end())
+		while( iter != transIDs.end())
 		{
 			this->data->SetValue((vtkIdType)*iter, coln - 1, label);	
 			iter++;
 		}
 	}
-	ftk::SaveTable( "LabeledTableFromSampleEditor.txt", this->data);
+	ftk::SaveTable( "LabeledTableFromSTrendEditor.txt", this->data);
+
+	//update views:
+	table->update();
+	plot->update();
 }
 
 void STrenDEditor::DumpClusterSelections()

@@ -42,7 +42,8 @@ protected:
 	void closeSubWindows();
 	vtkSmartPointer<vtkTable> GetSubTableExcludeItems( vtkSmartPointer<vtkTable> table, std::set<long int> &selItems);
 	void viewTrendAuto(bool bAuto = true);
-
+	
+	
 protected slots:
 	void showOriginalHeatmap();
     void clusterFunction();
@@ -61,6 +62,9 @@ protected slots:
 	void TestLTrend();
 	void autoClick();
 	void showMSTGraph();
+	void colorTreeNode();
+	void evaluateFeatures();
+	void clusteringBySingleLinkage();
 	//void UpdateVisualization();
 
 private:
@@ -98,11 +102,18 @@ private:
 	
 	//QPushButton *testKButton;
 	//QPushButton *testLButton;
+	QSpinBox *nThreshBox;
+	QPushButton *featureEvaluateButton; 
 	QPushButton *heatmapButton;  // show progression heatmap  
-	
+	QPushButton *clusteringButton;
+
 	// visualization
 	QLabel *treeVisLabel;   
 	QPushButton *treeVisButton;
+	QCheckBox *bshowClusterHeatmap;
+	QLabel *nColorLabel;
+    QSpinBox *nColorBox;
+	QPushButton *nColorBotton;
 
 	QLabel *visualLabel;   
 	QPushButton *autoTrendButton;
@@ -134,6 +145,7 @@ private:
 	std::set<long int> excludedIds;
 	ObjectSelection *selection;  /** selection for threshold and IDs */
 	ObjectSelection *selection2; 
+	std::vector<double> colorVecOri;
 
 	std::vector< unsigned int> selFeatureID;
 	std::vector< int> selOrder;
@@ -150,6 +162,7 @@ private:
 	vtkSmartPointer<vtkChartXYZ> chart;
 	vtkSmartPointer<vtkPlotPoints3D> plot3d;
 	vtkSmartPointer<vtkTable> tableAfterDimReduct;
+	vtkSmartPointer<vtkTable> dataLevelTable;
 };
 
 #endif // SPDKNNGMODULEMATCH_H

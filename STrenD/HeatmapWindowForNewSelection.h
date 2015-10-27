@@ -83,7 +83,7 @@
 #include <boost/math/distributions/normal.hpp>
 
 #include <ftkCommon/ftkUtils.h>
-#include "ClusClus/clusclus.h"
+#include "clusclus.h"
 #include "ftkGUI/ObjectSelection.h"
 #include "ftkGUI/ColorMap.h"
 #include "ftkGUI/SelectiveClustering.h"

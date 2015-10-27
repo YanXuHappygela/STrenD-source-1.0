@@ -122,6 +122,9 @@ public:
 	void drawPointsforNe();
 	vtkSmartPointer<vtkTable> GetTreeTable();
 	void GetSubTreeClusterNum(std::vector<int> &clusterNum);
+	void getThreshold(std::vector<double> &thresVec);
+	void selectClustersforSPD(double* worldPosition, bool selection = true);
+	void addDragLineforSPD(double* worldPosition);
 
 signals:
 	void SelChanged();
@@ -157,9 +160,7 @@ private:
 	void createDataForDendogram2();
 	void reselectIds1(std::set<long int>& selectedIDs, long int id);
 	void reselectIds2(std::set<long int>& selectedIDs2, long int id);
-	void addDragLineforSPD(double* worldPosition);
-	void selectClustersforSPD(double* worldPosition);
-	void reselectClustersforSPD(std::set<long int>& selectedClusterSPD);
+	void reselectClustersforSPD(std::set<long int>& selectedClusterSPD, bool selection = true);
 	void reselectIdsforSPD(long int id, std::set<long int> *clusidforSPD = NULL);
 	void SetdenSelectedIdsForSPD(std::set<long int>& IDs);
 	void reselectSPDIds1(std::set<long int>& selectedIDs, long int id);

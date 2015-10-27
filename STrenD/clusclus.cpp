@@ -389,8 +389,9 @@ double clusclus::UpdateClusterDistances(int num_currcluster, int pivot1, int piv
 		{
 			finaldistance = sqrt(tempdistance*tempdistance/num_sample_p1/num_sample_k);
 		}
-		else if(this->linkmode == 1)
+		else if(this->linkmode == 1){
 			finaldistance = minn;
+		}
 		else if(this->linkmode == 3)
 			finaldistance = maxx;
 

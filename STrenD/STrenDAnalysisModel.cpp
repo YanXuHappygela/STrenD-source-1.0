@@ -487,8 +487,11 @@ void STrenDAnalysisModel::ConvertTableToMatrixForValidation(vtkSmartPointer<vtkT
 		}
 	}
 
-	table->RemoveColumnByName("Label");
+	if( clusNo[0] > 0){
+		std::cout<< "Labels read for validation!"<<std::endl;
+	}
 
+	table->RemoveColumnByName("Label");
 	std::cout<< "Table input: "<<table->GetNumberOfRows()<<"\t"<<table->GetNumberOfColumns()<<std::endl;
 
 	mat.set_size( table->GetNumberOfRows(), table->GetNumberOfColumns() - 1);
@@ -932,6 +935,96 @@ int STrenDAnalysisModel::ClusterAgglomerate(double cor, double mer)
 	return new_cluster_num;
 }
 
+int STrenDAnalysisModel::StrictClusterFeature(double cor)
+{
+	vnl_vector<unsigned int> clusterIndex;
+	vnl_vector<unsigned int> clusterIndexTag;
+	std::set<unsigned int> checkIndex;
+	clusterIndex.set_size( MatrixAfterCellCluster.cols());
+	clusterIndexTag.set_size( MatrixAfterCellCluster.cols());
+
+	this->filename = QString::number(MatrixAfterCellCluster.cols())+ "_" + QString::number(MatrixAfterCellCluster.rows()) + 
+				"_" + QString::number( cor, 'g', 4) + "_";
+	QString filenameCluster = this->filename + "clustering.txt";
+	std::ofstream ofs(filenameCluster.toStdString().c_str(), std::ofstream::out);
+
+	for( unsigned int i = 0; i < this->MatrixAfterCellCluster.cols(); i++)
+	{
+		clusterIndex[i] = i;
+		checkIndex.insert(i);
+		clusterIndexTag[i] = 0;
+	}
+	
+	std::cout<< "Step I: "<<std::endl;
+	unsigned int count = 0;
+	while( checkIndex.size() > 0)
+	{
+		++count;
+		std::set<unsigned int>::iterator iter = checkIndex.begin();
+		int start_index = *iter;
+		std::set<unsigned int>::iterator iter2 = checkIndex.begin();
+		iter2++;
+		vnl_vector<double> checkCol = MatrixAfterCellCluster.get_column(start_index);
+		std::vector<unsigned int> eraseIter;
+		eraseIter.push_back(start_index);
+		for( iter2; iter2 != checkIndex.end(); iter2++){
+			vnl_vector<double> toComputeCol = MatrixAfterCellCluster.get_column(*iter2);
+			double dotProduct = dot_product(checkCol.normalize(), toComputeCol.normalize());
+			//double score = dotProduct / (checkCol.size() - 1);
+			if( abs(dotProduct) >= cor){
+				clusterIndex[*iter2] = start_index;
+				eraseIter.push_back(*iter2);
+			}
+		}
+		
+		for( unsigned int i = 0; i < eraseIter.size(); i++){
+			checkIndex.erase(checkIndex.find(eraseIter[i]));
+		}
+	}
+	
+	std::cout<< "Step II: "<<count<<std::endl;
+	ofs<<clusterIndex<<endl;
+	unsigned int continueIndex = 0;
+	unsigned int tag = 0;
+	
+	while( tag < clusterIndex.size()) {
+		unsigned int val = clusterIndex[tag];
+		clusterIndex[tag] = continueIndex;
+		clusterIndexTag[tag] = 1;
+		for( unsigned int i = tag + 1; i < clusterIndex.size(); i++){
+			if( clusterIndexTag[i] == 0 && abs(double(clusterIndex[i] - val)) < 1e-6){
+				clusterIndex[i] = continueIndex;
+				clusterIndexTag[i] = 1;
+			}
+		}
+
+		while( clusterIndexTag[tag] == 1){
+			++tag;
+		}
+		++continueIndex;
+	}
+	std::cout<< "Total of feature clusters: "<<continueIndex<<"\t"<<clusterIndexTag.sum()<<std::endl;
+
+	this->ClusterIndex = clusterIndex;
+
+	for( unsigned int i = 0; i <= this->ClusterIndex.max_value(); i++)
+	{
+		ofs<<"Cluster:"<< i<<endl;
+		for( unsigned int j = 0; j < this->ClusterIndex.size(); j++)
+		{
+			if( ClusterIndex[j] == i)
+			{
+				char* name = this->DataTable->GetColumn(j + 1)->GetName();
+				std::string featureName(name);
+				ofs<<j<<"\t"<<featureName<<endl;
+			}
+		}
+	}
+
+	ofs.close();
+
+	return continueIndex;
+}
 
 int STrenDAnalysisModel::ClusterAggFeatures(vnl_matrix<double>& mainmatrix, vnl_vector<unsigned int>& index, vnl_matrix<double>& mean, double cor)
 {
@@ -1330,6 +1423,185 @@ void STrenDAnalysisModel::GetFeatureIdbyModId(std::vector<unsigned int> &modID, 
 	}
 }
 
+unsigned int STrenDAnalysisModel::GetModuleAllSize( vnl_vector<unsigned int>& index, std::vector<unsigned int> &moduleID)
+{
+	vnl_vector<int> moduleSize = GetModuleSize( index);
+	unsigned int count = 0;
+	for( unsigned int i = 0; i < moduleID.size(); i++)
+	{
+		unsigned int moduleIndex = moduleID[i];
+		count += moduleSize[moduleIndex];
+	}
+	return count;
+}
+
+void STrenDAnalysisModel::GetModuleWeightsByIndividualKNNMatching(std::vector<unsigned int> &moduleID, std::vector<double> &moduleWeights, unsigned int kNeighbor, int nbins)
+{
+	moduleWeights.resize(ClusterIndex.max_value() + 1);
+	unsigned int featureCounts = GetModuleAllSize(ClusterIndex, moduleID);
+	std::cout<< featureCounts<< std::endl;
+
+	vnl_matrix<double> subMat(MatrixAfterCellCluster.rows(),featureCounts);
+	vnl_matrix<double> trendDis;
+	GetCombinedMatrix(MatrixAfterCellCluster, ClusterIndex, moduleID, subMat);
+	std::cout<< subMat.rows()<<"\t"<<subMat.cols()<<std::endl;
+
+    EuclideanBlockDist(subMat, trendDis);
+	std::vector< unsigned int> trendKNN;
+	FindNearestKSample(trendDis, trendKNN, kNeighbor);
+
+	#pragma omp parallel for
+	for( int i = 0; i <= ClusterIndex.max_value(); i++) 
+	{
+		if (moduleForSelection.find(i) != moduleForSelection.end())
+		{
+			vnl_matrix< double> modulei(MatrixAfterCellCluster.rows(),GetSingleModuleSize( ClusterIndex, i));
+			GetCombinedMatrix(MatrixAfterCellCluster, ClusterIndex, i, i, modulei);
+			vnl_matrix< double> modDisti;
+			EuclideanBlockDist(modulei, modDisti);
+			std::vector< unsigned int> kNearIndex;
+			FindNearestKSample(modDisti, kNearIndex, kNeighbor);
+			double min_i = 0;
+			double max_i = 0;
+			GetDiagnalMinMax(modDisti, min_i, max_i);
+			double interval_i = ( max_i - min_i) / nbins;
+
+			vnl_vector<unsigned int> modHisti;
+			vnl_vector<unsigned int> modKnnHist;
+			vnl_vector<double> modKNNWeights;
+			vnl_matrix<double> flowMatrixi( nbins, nbins);
+			Hist( modDisti, interval_i, min_i, modHisti, nbins);
+			GetKWeights( modDisti, kNearIndex, modKNNWeights, kNeighbor);
+			Hist( modKNNWeights, interval_i, min_i, modKnnHist, nbins);
+			double discalei = EarthMoverDistance( modHisti, modKnnHist, flowMatrixi, nbins, true);
+
+			vnl_vector<double> matchWeights2;
+			vnl_vector<unsigned int> histMatch2;
+			GetKWeights( modDisti, trendKNN, matchWeights2, kNeighbor);
+			Hist( matchWeights2, interval_i, min_i, histMatch2, nbins);
+			vnl_matrix<double> flowMatrixMatch2( nbins, nbins);
+			double earth2 = EarthMoverDistance( modHisti, histMatch2, flowMatrixMatch2, nbins, true);
+			earth2 = earth2 > 0 ? earth2 : 0;
+			double val2 = earth2 / discalei;
+
+			moduleWeights[i] = val2;
+		}
+		else
+		{
+			moduleWeights[i] = 0;
+		}
+	}
+}
+
+void STrenDAnalysisModel::GetFeatureWeights(std::vector<unsigned int> &moduleID, std::vector<double> &featureWeights, unsigned int kNeighbor, int nbins)
+{
+	featureWeights.resize(MatrixAfterCellCluster.cols());
+	unsigned int featureCounts = GetModuleAllSize(ClusterIndex, moduleID);
+	
+	vnl_matrix<double> subMat(MatrixAfterCellCluster.rows(),featureCounts);
+	vnl_matrix<double> trendDis;
+	GetCombinedMatrix(MatrixAfterCellCluster, ClusterIndex, moduleID, subMat);
+
+    EuclideanBlockDist(subMat, trendDis);
+	std::vector< unsigned int> trendKNN;
+	FindNearestKSample(trendDis, trendKNN, kNeighbor);
+
+	#pragma omp parallel for
+	for( int i = 0; i < MatrixAfterCellCluster.cols(); i++) 
+	{
+		if (moduleForSelection.find(ClusterIndex[i]) != moduleForSelection.end())
+		{
+			vnl_vector< double> modulei = MatrixAfterCellCluster.get_column(i);
+			vnl_matrix< double> modDisti;
+			EuclideanBlockDist(modulei, modDisti);
+			std::vector< unsigned int> kNearIndex;
+			FindNearestKSample(modDisti, kNearIndex, kNeighbor);
+			double min_i = 0;
+			double max_i = 0;
+			GetDiagnalMinMax(modDisti, min_i, max_i);
+			double interval_i = ( max_i - min_i) / nbins;
+
+			vnl_vector<unsigned int> modHisti;
+			vnl_vector<unsigned int> modKnnHist;
+			vnl_vector<double> modKNNWeights;
+			vnl_matrix<double> flowMatrixi( nbins, nbins);
+			Hist( modDisti, interval_i, min_i, modHisti, nbins);
+			GetKWeights( modDisti, kNearIndex, modKNNWeights, kNeighbor);
+			Hist( modKNNWeights, interval_i, min_i, modKnnHist, nbins);
+			double discalei = EarthMoverDistance( modHisti, modKnnHist, flowMatrixi, nbins, true);
+			vnl_vector<double> matchWeights2;
+			vnl_vector<unsigned int> histMatch2;
+			GetKWeights( modDisti, trendKNN, matchWeights2, kNeighbor);
+			Hist( matchWeights2, interval_i, min_i, histMatch2, nbins);
+			vnl_matrix<double> flowMatrixMatch2( nbins, nbins);
+			double earth2 = EarthMoverDistance( modHisti, histMatch2, flowMatrixMatch2, nbins, true);
+			earth2 = earth2 > 0 ? earth2 : 0;
+			double val2 = earth2 / discalei;
+
+			featureWeights[i] = val2;
+		}
+		else
+		{
+			featureWeights[i] = 0;
+		}
+	}
+}
+
+bool sort_descend (int i,int j) { return (i>j); }
+void sort_indexes_descend(std::vector<double> &v, std::vector<unsigned int> &idx){
+	idx.resize(v.size());
+	for( unsigned int i = 0; i != idx.size(); ++i) 
+		idx[i] = i;
+	for( unsigned int i = 0; i < v.size(); i++){
+		for( unsigned int j = i + 1; j < v.size(); j++){
+			if(v[i] < v[j]){
+				std::swap(v[i], v[j]);
+				std::swap(idx[i], idx[j]);
+			}
+		}
+	}
+}
+
+void STrenDAnalysisModel::RefineFeatures(std::vector<unsigned int> &moduleID, std::vector<unsigned int> &selModuleIDUpdated, unsigned int kNeighbor, int nbins, int countThres)
+{    
+	std::vector<double> moduleWeights;
+	GetModuleWeightsByIndividualKNNMatching(moduleID, moduleWeights, kNeighbor, nbins);
+	std::vector<unsigned int> indexes;
+	sort_indexes_descend(moduleWeights, indexes);
+	std::set<unsigned int> moduleIDSel(moduleID.begin(), moduleID.end());
+	selModuleIDUpdated.clear();
+	int i = 0;
+	while( i < indexes.size())
+	{
+		int count = 0;
+		std::vector< unsigned int> tmp;
+		while( i < indexes.size() && moduleIDSel.find(indexes[i]) != moduleIDSel.end())
+		{
+			selModuleIDUpdated.push_back(indexes[i]);
+			++i;
+		}
+
+		while( i < indexes.size() && moduleIDSel.find(indexes[i]) == moduleIDSel.end())
+		{
+			tmp.push_back(indexes[i]);
+			++i;
+			++count;
+			if( count >= countThres){
+				break;
+			}
+		}
+
+		if( count >= countThres || i >= indexes.size()){
+			break;
+		}
+		else if( i < indexes.size() && moduleIDSel.find(indexes[i]) != moduleIDSel.end()){
+			for(size_t j = 0; j < tmp.size(); j++){
+				selModuleIDUpdated.push_back(tmp[j]);
+			}
+		}
+	}
+}
+
 double STrenDAnalysisModel::GetANOVA(std::vector< std::vector< long int> > &index, std::vector< unsigned int> &selFeatureId)
 {
 	if( MatrixAfterCellCluster.rows() == index.size() || index.size() == 1)
@@ -1424,8 +1696,10 @@ void STrenDAnalysisModel::ConvertClusIndexToSampleIndex(std::vector< std::vector
 	}
 }
 
-void STrenDAnalysisModel::GetSingleLinkageClusterAverage(std::vector< std::vector< long int> > &index, vnl_matrix<double> &clusAverageMat)  // after single linkage clustering
+void STrenDAnalysisModel::GetSingleLinkageClusterAverage(std::vector< std::vector< long int> > &index, vnl_matrix<double> &clusAverageMat, vnl_vector<double> &meanVec)  // after single linkage clustering
 {
+	meanVec.set_size(MatrixAfterCellCluster.cols());
+	meanVec.fill(0);
 	clusAverageMat.set_size( index.size(), MatrixAfterCellCluster.cols());
 	for( int i = 0; i < index.size(); i++)
 	{
@@ -1438,9 +1712,34 @@ void STrenDAnalysisModel::GetSingleLinkageClusterAverage(std::vector< std::vecto
 			vnl_vector<double> row = MatrixAfterCellCluster.get_row(clusId);
 			tmp = tmp + row;
 		}
+		meanVec = meanVec + tmp;
 		tmp = tmp / index[i].size();
 		clusAverageMat.set_row(i, tmp);
 	}
+	meanVec = meanVec / MatrixAfterCellCluster.rows();
+}
+
+double STrenDAnalysisModel::GetSingleLinkageCHIndex(std::vector< std::vector< long int> > &index, vnl_matrix<double> &clusAverageMat, vnl_vector<double> &meanVec, double &totalWVar, double &totalBVar)  // after single linkage clustering
+{
+	totalWVar = 0;
+	totalBVar = 0;
+	for( int i = 0; i < index.size(); i++)
+	{
+		vnl_vector<double> meanI = clusAverageMat.get_row(i);
+		for( int j = 0; j < index[i].size(); j++)
+		{
+			long int id = index[i][j];
+			int clusId = combinedIndexMapping.find(id)->second;
+			vnl_vector<double> row = MatrixAfterCellCluster.get_row(clusId);
+			vnl_vector<double> diff = row - meanI;
+			totalWVar += diff.squared_magnitude();
+		}
+
+		vnl_vector<double> dif = meanI - meanVec;
+		totalBVar += dif.squared_magnitude() * index[i].size();
+	}
+	double CHIndex = (totalBVar / (index.size() - 1)) / (totalWVar / (MatrixAfterCellCluster.rows() - index.size()));
+	return CHIndex;
 }
 
 void STrenDAnalysisModel::GetDataMatrix( vnl_matrix<double> &mat)
@@ -2714,7 +3013,7 @@ void STrenDAnalysisModel::RunEMDAnalysis(int numBin)
 	{
 		if( EMDMatrix(i,0) > -1e-9)
 		{
-			moduleForSelection.push_back(i);
+			moduleForSelection.insert(i);
 		}
 	}
 
@@ -2847,15 +3146,15 @@ void STrenDAnalysisModel::GetClusClusDataMST(clusclus *c1, double threshold, std
 	{
 		//ofSimatrix<< "Overal Progression"<<endl;
 		//vnl_vector<int> moduleSize = GetModuleSize( this->ClusterIndex);
-		for( unsigned int i = 0; i < moduleForSelection.size(); i++)
+		for( std::set< int>::iterator i = moduleForSelection.begin(); i != moduleForSelection.end(); i++)
 		{
-			int moduleI = moduleForSelection[i];
+			int moduleI = *i;
 			//ofSimatrix <<"MST "<<moduleI<<endl;
-			for( unsigned int j = 0; j < moduleForSelection.size(); j++)
+			for( std::set< int>::iterator j = moduleForSelection.begin(); j != moduleForSelection.end(); j++)
 			{
-				if( this->EMDMatrix( moduleI, moduleForSelection[j]) >= threshold)     // find the modules that support common mst    change to smaller than
+				if( this->EMDMatrix( moduleI, *j) >= threshold)     // find the modules that support common mst    change to smaller than
 				{
-					simModIndex.push_back(moduleForSelection[j]);
+					simModIndex.push_back(*j);
 					//ofSimatrix << moduleForSelection[j] <<"\t";
 				}
 			}
@@ -3668,30 +3967,51 @@ void STrenDAnalysisModel::GetSelectedFeatures(std::set<long int>& selectedFeatur
 	selectedFeatures = this->selectedFeatureIDs;
 }
 
-void STrenDAnalysisModel::SaveSelectedFeatureNames(QString filename, std::vector<int>& selectedFeatures)
+void STrenDAnalysisModel::SaveSelectedFeatureNames(std::string filename, std::vector<unsigned int>& selModuleID, std::vector<double>& moduleWeights, std::vector<double>& featureWeights)
 {
-	std::ofstream ofs( filename.toStdString().c_str(), std::ofstream::out);
+	std::ofstream ofs( filename.c_str(), std::ofstream::out);
+	ofs<<"module_name\t"<<"module_weight\t"<<"whether_selected\t"<<"feature_name\t"<<"feature_weight"<<endl;
+	std::set<unsigned int> orderedSel(selModuleID.begin(),selModuleID.end());
+	std::set<unsigned int> orderedUnSel;
 
-	for( int i = 0; i < selectedFeatures.size(); i++)
+	for( unsigned int i = 0; i < moduleWeights.size(); i++)
 	{
-		char* name = this->DataTable->GetColumn(selectedFeatures[i] + 1)->GetName();
-		std::string featureName(name);
-		ofs<<featureName<<endl;
+		if (orderedSel.find(i) == orderedSel.end())
+		{
+			orderedUnSel.insert(i);
+		}
 	}
-	ofs.close();
-}
+	
+	for( std::set<unsigned int>::iterator iter = orderedSel.begin(); iter != orderedSel.end(); iter++)
+	{
+		std::vector<unsigned int> tmp(1);
+		std::vector<unsigned int> featureSel;
+		tmp[0] = *iter;
+		GetFeatureIdbyModId(tmp, featureSel);
+		for( unsigned int k = 0; k < featureSel.size(); k++)
+		{
+			int index = featureSel[k];
+			char* name = this->DataTable->GetColumn(index + 1)->GetName();
+			std::string featureName(name);
+			ofs<<"module "<<*iter<<"\t"<<moduleWeights[*iter]<<"\t"<<1<<"\t"<<featureName<<"\t"<<featureWeights[index]<<endl;
+		}
+	}	
 
-void STrenDAnalysisModel::SaveSelectedFeatureNames(QString filename, std::vector<unsigned int>& selectedFeatures)
-{
-	QString file = this->filename + QString::number(m_kNeighbor) + QString("_") + filename;
-	std::ofstream ofs( file.toStdString().c_str(), std::ofstream::out);
-	ofs<< "FeatureID"<<"\t"<<"FeatureName"<<endl;
-	for( int i = 0; i < selectedFeatures.size(); i++)
+	for( std::set<unsigned int>::iterator iter = orderedUnSel.begin(); iter != orderedUnSel.end(); iter++)
 	{
-		char* name = this->DataTable->GetColumn(selectedFeatures[i] + 1)->GetName();
-		std::string featureName(name);
-		ofs<< selectedFeatures[i]<<"\t"<<featureName<<endl;
-	}
+		std::vector<unsigned int> tmp(1);
+		std::vector<unsigned int> featureUnSel;
+		tmp[0] = *iter;
+		GetFeatureIdbyModId(tmp, featureUnSel);
+		for( unsigned int k = 0; k < featureUnSel.size(); k++)
+		{
+			int index = featureUnSel[k];
+			char* name = this->DataTable->GetColumn(index + 1)->GetName();
+			std::string featureName(name);
+			ofs<<"module "<<*iter<<"\t"<<moduleWeights[*iter]<<"\t"<<0<<"\t"<<featureName<<"\t"<<featureWeights[index]<<endl;
+		}
+	}	
+
 	ofs.close();
 }
 
@@ -3711,6 +4031,18 @@ vtkSmartPointer<vtkTable> STrenDAnalysisModel::GetNormalizedTableAfterFeatureSel
 	for(int i = 0; i < selectedFeatures.size(); i++)
 	{		
 		table->AddColumn(normalTable->GetColumn(selectedFeatures[i] + 1));
+	}
+	return table;
+}
+
+vtkSmartPointer<vtkTable> STrenDAnalysisModel::GetOriginalTableAfterFeatureSelection(std::vector<unsigned int>& selectedFeatures)
+{
+	vtkSmartPointer<vtkTable> table = vtkSmartPointer<vtkTable>::New();
+	table->AddColumn(DataTable->GetColumn(0));
+
+	for(int i = 0; i < selectedFeatures.size(); i++)
+	{		
+		table->AddColumn(DataTable->GetColumn(selectedFeatures[i] + 1));
 	}
 	return table;
 }
@@ -3964,6 +4296,82 @@ unsigned int STrenDAnalysisModel::GetKNeighborNum()
 	return m_kNeighbor;
 }
 
+void STrenDAnalysisModel::ConvertTableToMatrixIdRemoved(vtkSmartPointer<vtkTable> table, vnl_matrix<double> &mat){
+	mat.set_size(table->GetNumberOfRows(),table->GetNumberOfColumns() - 1);
+	for(int i = 0; i < table->GetNumberOfRows(); i++){
+		vtkSmartPointer<vtkVariantArray> row = table->GetRow(i);
+		for(int j = 0; j < table->GetNumberOfColumns() - 1; j++){
+			mat(i,j) = row->GetValue(j + 1).ToDouble();
+		}
+	}
+}
+
+vtkSmartPointer<vtkTable> STrenDAnalysisModel::GetDataTableByTreeLevel(std::vector<std::list<int>> &longestPath)
+{
+	std::set<int> ids;
+	for(int i = 0; i < longestPath.size(); i++){
+		std::list<int> list = longestPath[i];
+		for( std::list<int>::iterator iter = list.begin(); iter != list.end(); iter++){
+			ids.insert(*iter);
+		}
+	}
+	vtkSmartPointer<vtkTable> table = vtkSmartPointer<vtkTable>::New();
+
+	for(int i = 0; i < DataTable->GetNumberOfColumns(); i++)
+	{		
+		vtkSmartPointer<vtkVariantArray> column = vtkSmartPointer<vtkVariantArray>::New();
+		column->SetName( DataTable->GetColumn(i)->GetName());
+		table->AddColumn(column);
+	}
+
+	for( std::set<int>::iterator iter = ids.begin(); iter != ids.end(); iter++){
+		table->InsertNextRow(DataTable->GetRow(*iter));
+	}
+	return table;
+}
+
+vtkSmartPointer<vtkTable> STrenDAnalysisModel::GetDataTableByLongestCluster(std::vector<std::list<int>> &longestCluster)
+{
+	vtkSmartPointer<vtkTable> table = vtkSmartPointer<vtkTable>::New();
+	for(int i = 0; i < DataTable->GetNumberOfColumns(); i++)
+	{		
+		vtkSmartPointer<vtkVariantArray> column = vtkSmartPointer<vtkVariantArray>::New();
+		column->SetName( DataTable->GetColumn(i)->GetName());
+		table->AddColumn(column);
+	}
+	vtkSmartPointer<vtkVariantArray> columnLabel = vtkSmartPointer<vtkVariantArray>::New();
+	columnLabel->SetName( "label");
+	table->AddColumn(columnLabel);
+
+	for(int i = 1; i < longestCluster.size(); i++)
+	{
+		std::list<int>::iterator iterbeg = longestCluster[i].begin();
+		for( std::list<int>::iterator iter = longestCluster[i].begin(); iter != longestCluster[i].end(); iter++)
+		{
+			vtkSmartPointer<vtkVariantArray> row = DataTable->GetRow(*iter);
+			row->InsertNextValue(*iterbeg);
+			table->InsertNextRow(row);
+		}
+	}
+	return table;
+}
+
+vtkSmartPointer<vtkTable> STrenDAnalysisModel::GetOrderedTableByBackBone(vtkSmartPointer<vtkTable> oritable, std::list<int> &backBone)
+{
+	vtkSmartPointer<vtkTable> table = vtkSmartPointer<vtkTable>::New();
+	for(int i = 0; i < oritable->GetNumberOfColumns(); i++)
+	{		
+		vtkSmartPointer<vtkVariantArray> column = vtkSmartPointer<vtkVariantArray>::New();
+		column->SetName( oritable->GetColumn(i)->GetName());
+		table->AddColumn(column);
+	}
+
+	for( std::list<int>::iterator iter = backBone.begin(); iter != backBone.end(); iter++){
+		table->InsertNextRow(oritable->GetRow(*iter));
+	}
+	return table;
+}
+
 void STrenDAnalysisModel::GetDiagnalMinMax(vnl_matrix<double> &mat, double &min, double &max)
 {
 	min = mat(0,1);
@@ -4149,7 +4557,7 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch2(unsigned int kNeighbor, 
 		}
 		else
 		{
-			moduleForSelection.push_back(i);
+			moduleForSelection.insert(i);
 		}
 	}
 	ofs<< this->EMDMatrix<< std::endl;
@@ -4224,7 +4632,7 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 		double mmin = meanVec.min_value();
 		double mmax = meanVec.max_value();
 		
-		if( mmax - mmin > 1e-9)
+		if( mmax - mmin > 1e-6)
 		{
 			bool bstate = true;
 			vnl_vector<unsigned int> histMean;
@@ -4259,10 +4667,11 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 				}
 				if( zeroSum >= 2.0 / 3.0 * histMean.size())
 				{
-					std::cout<< "Do not use module "<<i<<" for iteration.\t"<<std::endl;
-					omp_set_lock(&my_lock);
-						excludeModule.insert(i);
-					omp_unset_lock(&my_lock);
+					std::cout<< "2 Remove module "<<i<<" for iteration.\t"<<std::endl;
+					state[i] = 0;
+					//omp_set_lock(&my_lock);
+					//	excludeModule.insert(i);
+					//omp_unset_lock(&my_lock);
 				}
 			}
 
@@ -4272,16 +4681,28 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 			double max = 0;
 			GetDiagnalMinMax(modDisti, min, max);
 			double interval = ( max - min) / nbins;
-			
-			
-			if(state[i])
+			if( abs(interval) < 1e-6)
 			{
-				std::vector<unsigned int> nearIndex;
-				vnl_vector<double> nearWeights;
-				FindNearestKSample(modDisti, nearIndex, kNeighbor);
-				GetKWeights( modDisti, nearIndex, nearWeights, kNeighbor);
-				kNearIndex[i] = nearIndex;
+				state[i] = 0;
+				std::cout<< "3 Remove module "<<i<<std::endl;
+				continue;
 			}
+			else
+			{
+				if(state[i])
+				{
+					std::vector<unsigned int> nearIndex;
+					vnl_vector<double> nearWeights;
+					FindNearestKSample(modDisti, nearIndex, kNeighbor);
+					GetKWeights( modDisti, nearIndex, nearWeights, kNeighbor);
+					kNearIndex[i] = nearIndex;
+				}
+			}
+		}
+		else
+		{
+			std::cout<< "0 Remove module "<<i<<std::endl;
+			state[i] = 0;
 		}
 	}
 
@@ -4316,13 +4737,6 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 			Hist(modDisti, interval, min, histModi, nbins); 
 			GetKWeights( modDisti, kNearIndex[i], knnWeights, kNeighbor);
 			Hist( knnWeights, interval, min, histi, nbins);
-
-			if( abs(interval) < 1e-6)
-			{
-				state[i] = 0;
-				std::cout<< "2 Remove module "<<i<<std::endl;
-				continue;
-			}
 
 			vnl_matrix<double> flowMatrix( nbins, nbins);
 			double discale = EarthMoverDistance( histModi, histi, flowMatrix, nbins, true);
@@ -4364,7 +4778,7 @@ void STrenDAnalysisModel::ModuleCorrelationMatrixMatch(unsigned int kNeighbor, i
 		}
 		else
 		{
-			moduleForSelection.push_back(i);
+			moduleForSelection.insert(i);
 		}
 	}
 	std::cout<< moduleForSelection.size() <<std::endl;
@@ -4417,21 +4831,25 @@ double STrenDAnalysisModel::GetAutoSimilarityThreshold(unsigned int level)
 	imgPtr->FillBuffer(0);
 	ImageType::PixelType * imBuffer = imgPtr->GetBufferPointer();
 
-	for( int jj = 0; jj< size[1]; ++jj)
+	int jj_index = 0;
+	for( std::set< int>::iterator jj = moduleForSelection.begin(); jj != moduleForSelection.end(); jj++)
 	{
-		for( int ii = 0; ii < size[0]; ++ii)
+		int ii_index = 0;
+		for( std::set< int>::iterator ii = moduleForSelection.begin(); ii != moduleForSelection.end(); ii++)
 		{
 			if( ii != jj)
 			{
-				int nr = moduleForSelection[ii];
-				int nc = moduleForSelection[jj];
+				int nr = *ii;
+				int nc = *jj;
 				itk::Index<1> offset;
-				offset[0] = jj * size[0] + ii;
+				offset[0] = jj_index * size[0] + ii_index;
 				double val = this->EMDMatrix(nr,nc);
 				float pixelVal = val * 255;
 				imBuffer[offset[0]] = pixelVal;
 			}
+			ii_index++;
 		}
+		jj_index++;
 	}
 
 	//WriterType::Pointer writer1 = WriterType::New();
@@ -5238,6 +5656,13 @@ void STrenDAnalysisModel::GetClusterFeatureValue(std::vector< std::vector< long 
 		featureValue[i] = averFeature;
 	}
 
+	char* name = this->DataTable->GetColumn(nfeature + 1)->GetName();
+	featureName = "Colored by " + std::string(name);
+}
+
+void STrenDAnalysisModel::GetFeatureValue(int nfeature, vnl_vector<double> &featureValue, std::string &featureName)
+{
+	featureValue = UNMatrixAfterCellCluster.get_column( nfeature);
 	char* name = this->DataTable->GetColumn(nfeature + 1)->GetName();
 	featureName = "Colored by " + std::string(name);
 }
@@ -6564,4 +6989,9 @@ double STrenDAnalysisModel::SimulateVec2(unsigned int kNeighbor, unsigned int nb
 	}
 
 	return ps;
+}
+
+int STrenDAnalysisModel::GetMaxIndex()
+{
+	return clusNo.max_value();
 }

@@ -47,42 +47,42 @@ public:
 	GraphWindow(QWidget * parent = 0);
 	~GraphWindow();
 	void setModels(vtkSmartPointer<vtkTable> table, ObjectSelection * sels = NULL, std::vector<int> *indexCluster = NULL, ObjectSelection * sels2 = NULL);
+	vtkSmartPointer<vtkTable> getModels();
 	void SetGraphTable(vtkSmartPointer<vtkTable> table);
 	void SetGraphTable(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2);
 	void SetGraphTable(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, std::string xCol, std::string yCol, std::string zCol);
 	void SetTreeTable(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, std::vector<double> *colorVec = NULL, 
 					std::vector<double> *disVec = NULL, std::set<long int>* colSels = NULL, QString filename = "");
-	void SetGraphTableToPassThrough(vtkSmartPointer<vtkTable> table, unsigned int nodesNumber, std::string ID1, std::string ID2, std::string edgeLabel, 
-					std::vector<double> *colorVec = NULL, std::vector<double> *disVec = NULL, std::set<long int>* colSels = NULL, QString filename = "");
-	void AdjustedLayout(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, std::vector<long int> *treeOrder = NULL, std::vector<double> *colorVec = NULL, std::vector<double> *disVec = NULL);
+	void AdjustedLayout(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, std::vector<int> *treeOrder = NULL, std::vector<double> *colorVec = NULL, std::vector<double> *disVec = NULL);
 	void ShowGraphWindow();
 	ObjectSelection * GetSelection();
 	void GetTrendTreeOrder(std::vector<long int> &order);
 	void ColorTreeAccordingToFeatures(vnl_vector<double> &feature, const char *featureName);
 	static void GetTreeNodeBetweenDistance(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, vnl_matrix<double> &disMat);
+	void GetLongestPathListByLevel(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, int level, std::vector<std::list<int>> &longestPath);
+	void GetLongestPathListCluster(vtkSmartPointer<vtkTable> table, std::string ID1, std::string ID2, std::string edgeLabel, std::vector<std::list<int>> &longestCluster);
 
 protected:
-	void SetSelectedIds(std::set<long int>& IDs);
+	void SetSelectedIds(std::set<int>& IDs);
 	void SetSelectedIds2();
 	void UpdataLookupTable( std::set<long int>& IDs);
-	void CalculateCoordinates(vnl_matrix<long int>& adj_matrix, std::vector<Point>& pointList);
-	void find(vnl_vector<long int>& vec, long int val, std::vector<long int>& equal, std::vector<long int>& nonequal);
-	void getBackBones(vnl_matrix< long int>& shortest_hop, std::vector< long int>& branchnodes, std::vector< long int>& chains);
-	void GetElementsIndexInMatrix(vnl_matrix<long int>& mat, long int rownum, long int max, vnl_matrix<double>& oldmat, vnl_matrix<double>& newmat, vnl_vector< int>& tag);
-	void SortChainList( vnl_matrix<long int>& shortest_hop, std::vector<long int>& backbones, 
-		std::vector< std::pair<long int, std::vector<long int> > >& chainList);
-	bool IsExist(std::vector<long int>& vec, long int value);
+	void CalculateCoordinates(std::vector< std::list<int>> &adjList, std::vector<Point>& pointList);
+	void find(vnl_vector<int>& vec, int val, std::vector<int>& equal, std::vector<int>& nonequal);
+	void getBackBones(vnl_matrix< int>& shortest_hop, std::vector< int>& branchnodes, std::vector< int>& chains);
+	void GetElementsIndexInMatrix( vnl_matrix<double>& nodePos, vnl_matrix<double>& repel_mat, vnl_vector< int>& tag);
+	void SortChainList( std::vector<int>& backbones, std::vector< std::pair<int, std::vector<int> > >& chainList);
+	int IsExist(std::vector<int>& vec, int value);
 	double Median( vnl_vector<double> vec);
-	void GetOrder(long int node, std::vector<long int> &order);
+	void GetOrder(int node, std::vector<long int> &order);
 	void UpdateCoordinatesByEdgeWeights(std::vector<Point>& oldPointList, vnl_matrix<double>& vertexList, std::vector<Point>& newPointList);
-	void UpdateChainPointList(long int attachnode, std::vector<Point>& oldPointList, vnl_matrix<double>& vertexList, std::vector<Point>& newPointList);
+	void UpdateChainPointList(int attachnode, std::vector<Point>& oldPointList, vnl_matrix<double>& vertexList, std::vector<Point>& newPointList);
 	Point GetNewPointFromOldPoint( Point &oldPointFirst, Point &oldPointSecond, Point &newPointFirst, double weight);
 	double GetEdgeWeight(vnl_matrix<double>& vertexList, long firstIndex, long secondIndex);
 	virtual void closeEvent(QCloseEvent *event);
-	void SetUserDefineTrend(long int nodeID);
+	void SetUserDefineTrend(int nodeID);
 	void SetTrendStartTag(bool bstart);
 	void UpdateTrendPath();
-	void GetTrendPath(vnl_matrix<long int> &hopMat, long int startNode, long int endNode, std::vector< long int> &path);
+	void GetTrendPath(vnl_matrix<int> &hopMat, int startNode, int endNode, std::vector< int> &path);
 	void ResetLookupTable(vtkSmartPointer<vtkLookupTable> lookuptable, double* color);
 	void RestoreLookupTable();
 
@@ -94,16 +94,25 @@ protected:
 	template<class T> vnl_vector<T> VectorAnd(vnl_vector< T > const &v, vnl_vector< T > const &u);
 	template<class T> vnl_vector<T> VectorOr(vnl_vector< T > const &v, vnl_vector< T > const &u);
 	void GetConnectedLines(vnl_vector<int> &circle1, std::list<int> &circle2, vnl_vector<int> &commonNode, std::vector< std::list<int> > &lineList);
-    long int IsConnectedSuperNodeToNode(vnl_matrix<unsigned char> &adj_matrix, int node, std::list<int> &superNodePt);
+    int IsConnectedSuperNodeToNode(vnl_matrix<unsigned char> &adj_matrix, int node, std::list<int> &superNodePt);
     void CalculateCoordinatesForCircle(std::list<int> &circle, std::vector< std::list<int> > lineList, Point &center, double radius, std::vector<Point> &pointList);
+	void GetLongestPath(std::vector< std::list<int>> &adjList, std::vector<int> &longestPath, std::vector<int> &tag, int node = 0);
+	void depthSearch(std::vector< std::list<int>> &adjList, std::vector<int> &longestPath, std::vector<int> &tag, int node, std::vector<int> &bvisit);
+	void depthAllSearch(std::vector< std::list<int>> &adjList, std::vector<int> &longestPath, std::vector<int> &tag, int node, std::vector<int> &bvisit);
+	void GetAllNodeOnPath(std::vector< std::list<int>> &adjList, std::vector<int> &longestPath, std::vector<int> &tag, int node);
+	void GetBackBones(std::vector< std::list<int>> &adjList, std::vector<int> backbones, std::vector<int> &tag, std::vector< std::pair<int, std::vector<int> > > &backboneMap);	
+	void GetBackBonesMain(std::vector< std::list<int>> &adjList, std::vector<int> &backbones, std::vector< std::pair<int, std::vector<int> > > &backboneMap);
 
 	protected slots:
 	static void SelectionCallbackFunction(vtkObject* caller, long unsigned int eventId, void* clientData, void* callData );
 	static void HandleKeyPress(vtkObject* caller, long unsigned eventId, void* clientData, void* callData );
 	void UpdateGraphView();
-
+	
 signals:
 	void selection_Changed();
+
+public:
+	vtkSmartPointer<vtkGraphLayoutView> view;
 
 private:
 	vtkSmartPointer<vtkTable> dataTable;
@@ -117,7 +126,6 @@ private:
 	QVTKWidget mainQTRenderWidget;
 	//vtkSmartPointer<vtkViewTheme> theme;
 	vtkSmartPointer<vtkTableToGraph> TTG;	
-	vtkSmartPointer<vtkGraphLayoutView> view;
 	vtkSmartPointer<vtkCallbackCommand> selectionCallback;
 	vtkSmartPointer<vtkCallbackCommand> keyPress;
 	vtkSmartPointer<vtkLookupTable> lookupTable;
@@ -127,23 +135,23 @@ private:
 	vnl_vector<double> edgeWeights;
 	vnl_matrix<double> vertextList;
 
-	std::map<long int, long int> indMapFromVertexToInd;
-	std::vector<long int> indMapFromIndToVertex;
-	std::map<long int, long int> indMapFromVertexToClusInd;
+	std::map<int, int> indMapFromVertexToInd;
+	std::vector<int> indMapFromIndToVertex;
+	std::map<int, int> indMapFromVertexToClusInd;
 	std::vector< std::vector<int> > indMapFromClusIndToVertex;
 	std::vector< std::vector<int> > indMapFromClusIndToInd;
-	std::map< std::pair< long int, long int>, long int> edgeMapping;
+	std::map< std::pair< int, int>, int> edgeMapping;
 	QString fileName;
 
-	vnl_matrix<long int> shortest_hop;
-	std::vector< long int> backbones;
-	std::vector< std::pair<long int, std::vector<long int> > > chainList;
+	vnl_matrix<int> shortest_hop;
+	std::vector< int> backbones;
+	std::vector< std::pair<int, std::vector<int> > > chainList;
 
 	// User Define progression
-	long int progressionStartID;
-	long int progressionEndID;
+	int progressionStartID;
+	int progressionEndID;
 	bool bTrendStart;
-	std::vector< long int> progressionPath;
+	std::vector< int> progressionPath;
 };
 
 #endif

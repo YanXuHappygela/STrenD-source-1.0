@@ -87,6 +87,7 @@ private:
 	void createMenus();
 	void createStatusBar();
 	void ReadFiles(std::string hname, std::string dname);
+	std::set<long int> TransformSelectedIDsToContinuous(std::set<long int> &IDs);
     QDockWidget *statisticsDockWidget;
 	QMenu *fileMenu;
 	QAction *loadAction;
@@ -97,9 +98,10 @@ private:
 	QAction *changeRowDataAction;
 	QAction *showStatisticsAction;
 	QAction *updateStatisticsAction;
-
+	
 	QAction *CreateCluster;
 	QAction *DisplayClusterSelections;
+	QAction *addLabelAction;
 
 	StatisticsToolbar * statisticsToolbar;
 	TableWindow *table;
@@ -114,6 +116,8 @@ private:
 	vtkSmartPointer<vtkTable> data;
 	ObjectSelection *selection;
 	ObjectSelection *selection2;
+	std::map< int, int> indMapFromVertexToClus;
+
 	QString lastPath;
 
 	SelectiveClustering * ClusterSelections;
